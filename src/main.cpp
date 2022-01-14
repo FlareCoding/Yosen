@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include "interpreter/Interpreter.h"
 using namespace yosen;
 
