@@ -1,0 +1,50 @@
+// main.ys
+
+func main(args) {
+    var age = 22;
+    var str = “Yosen”;
+    str.reverse();
+    println(str);
+    str = null;
+}
+
+// Compiler
+
+StackFrames = {
+     “main” : new StackFrame()
+}
+
+// StackFrame: “main”
+
+Params = {
+    “args” : YosenTuple (gets assigned by the compiler)
+}
+
+VarKeys<string, int> = {
+    "args" : 1
+    “age”  : 2,
+    “str”  : 3
+}
+
+Vars<string, YosenObject*> = {
+   0 : YosenObject_Null, // permanently null
+   1 : YosenObject_Null,
+   2 : YosenObject_Null.
+   3 : YosenObject_Null.
+}
+
+FunctionNames = { “reverse”, "println" }
+
+// Bytecode
+
+# Preamble that moves parameters from the param register to the stack vars
+
+ALLOC_OBJECT	// gets loaded into the objects register [LOR]
+STORE 1		    // stores last loaded object in variable at index 1
+
+ALLOC_OBJECT 	// gets loaded into the objects register [LOR]
+STORE 2 		// stores last loaded object in variable at index 2
+CALL 0 2 		// call function name at index 0 on object at index 2
+LOAD 0		    // load YosenObject_Null
+STORE 2 		// store last loaded object into variable at index 2 
+

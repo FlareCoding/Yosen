@@ -1,0 +1,15 @@
+// First ever Yosen test
+
+func reverse(str) {
+	println(str.reverse());
+}
+
+func main(args) {
+	var age = 19;
+
+	println(args);
+	println(age);
+
+	var str = input();
+	reverse(str);
+}
