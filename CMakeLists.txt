@@ -23,8 +23,4 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_PATH})
 add_subdirectory(yosen_lang)
 add_subdirectory(yosen_lang_core)
 add_subdirectory(yosen_lang_std)
-
-add_custom_target(Tests
-    SOURCES
-        tests/main.ys
-)
+add_subdirectory(tests)
