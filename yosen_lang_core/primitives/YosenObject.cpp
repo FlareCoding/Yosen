@@ -19,21 +19,21 @@ namespace yosen
 		std::stringstream ss;
 		ss << std::hex << this_address;
 
-		string_repr = std::string("<YosenObject at 0x") + ss.str() + ">";
+		m_string_repr = std::string("<YosenObject at 0x") + ss.str() + ">";
 	}
 
 	YosenObject* YosenObject::clone()
 	{
 		YosenObject* new_obj = allocate_object<YosenObject>();
-		if (this->string_repr._Equal("null"))
-			new_obj->string_repr = "null";
+		if (this->m_string_repr._Equal("null"))
+			new_obj->m_string_repr = "null";
 
 		return new_obj;
 	}
 
 	std::string YosenObject::to_string()
 	{
-		return string_repr;
+		return m_string_repr;
 	}
 
 	const char* YosenObject::runtime_name() const
@@ -41,19 +41,26 @@ namespace yosen
 		return "Object";
 	}
 
-	void YosenObject::add_member_function(const std::string& name, yosen_function_t fn)
+	void YosenObject::add_member_native_function(const std::string& name, ys_member_native_fn_t fn)
 	{
-		member_functions[name] = fn;
+		m_member_native_functions[name] = fn;
 	}
 
-	bool YosenObject::has_member_function(const std::string& name)
+	bool YosenObject::has_member_native_function(const std::string& name)
 	{
-		return member_functions.find(name) != member_functions.end();
+		return m_member_native_functions.find(name) != m_member_native_functions.end();
 	}
 
-	yosen_function_t YosenObject::get_member_function(const std::string& name)
+	YosenObject* YosenObject::call_member_native_function(const std::string& name, YosenObject* args)
 	{
-		return member_functions[name];
+		if (!has_member_native_function(name))
+		{
+			printf("No member function '%s' found for object of type %s\n", name.c_str(), this->runtime_name());
+			return YosenObject_Null->clone();
+		}
+
+		auto fn = m_member_native_functions[name];
+		return fn(this, args);
 	}
 
 	void __yosen_register_allocated_object(void* obj)

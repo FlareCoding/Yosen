@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;")
 
@@ -12,17 +12,17 @@ endif()
 
 add_definitions(-DUNICODE -D_UNICODE)
 
-project(YosenLang)
+project(yosen_lang)
+include_directories(yosen_lang_core)
 
-include_directories("src")
-add_subdirectory(src)
+set(OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_PATH})
 
-add_executable(
-    YosenLang
-    
-    ${YOSENLANG_HEADERS}
-    ${YOSENLANG_SOURCES}
-)
+add_subdirectory(yosen_lang)
+add_subdirectory(yosen_lang_core)
+add_subdirectory(yosen_lang_std)
 
 add_custom_target(Tests
     SOURCES

@@ -4,13 +4,13 @@ namespace yosen
 {
 	YosenString::YosenString()
 	{
-		register_member_functions();
+		register_member_native_functions();
 	}
 
 	YosenString::YosenString(const std::string& val)
 		: value(val)
 	{
-		register_member_functions();
+		register_member_native_functions();
 	}
 	
 	YosenObject* YosenString::clone()
@@ -29,14 +29,16 @@ namespace yosen
 		return "String";
 	}
 
-	void YosenString::register_member_functions()
+	void YosenString::register_member_native_functions()
 	{
-		add_member_function("reverse", MEMBER_FUNCTION(reverse));
+		add_member_native_function("reverse", MEMBER_FUNCTION(reverse));
 	}
 
-	YosenObject* YosenString::reverse(YosenObject* args)
+	YosenObject* YosenString::reverse(YosenObject* self, YosenObject* args)
 	{
-		std::string val_copy(value);
+		auto this_obj = static_cast<YosenString*>(self);
+
+		std::string val_copy(this_obj->value);
 		std::reverse(val_copy.begin(), val_copy.end());
 
 		return allocate_object<YosenString>(val_copy);

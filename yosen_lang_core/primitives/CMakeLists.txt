@@ -1,10 +1,8 @@
-cmake_minimum_required(VERSION 3.0)
-set(CMAKE_CURRENT_SOURCE_DIR src/native_objects)
-
+set(CMAKE_CURRENT_SOURCE_DIR primitives)
 set(cwd ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(
-    NATIVE_OBJECTS_HEADERS
+    PRIMITIVES_HEADERS
 
     ${cwd}/YosenObject.h
     ${cwd}/YosenInteger.h
@@ -15,7 +13,7 @@ set(
 )
 
 set(
-    NATIVE_OBJECTS_SOURCES
+    PRIMITIVES_SOURCES
 
     ${cwd}/YosenObject.cpp
     ${cwd}/YosenInteger.cpp

@@ -1,11 +1,10 @@
-cmake_minimum_required(VERSION 3.0)
-set(CMAKE_CURRENT_SOURCE_DIR src/parser)
-
+set(CMAKE_CURRENT_SOURCE_DIR parser)
 set(cwd ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(
     PARSER_HEADERS
 
+    ${cwd}/json/json11.hpp
     ${cwd}/AST.h
     ${cwd}/Token.h
     ${cwd}/TokenPool.h
@@ -25,6 +24,7 @@ set(
 set(
     PARSER_SOURCES
 
+    ${cwd}/json/json11.cpp
     ${cwd}/Token.cpp
     ${cwd}/TokenPool.cpp
     ${cwd}/IdentifierToken.cpp

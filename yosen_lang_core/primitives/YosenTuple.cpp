@@ -4,13 +4,13 @@ namespace yosen
 {
 	YosenTuple::YosenTuple()
 	{
-		register_member_functions();
+		register_member_native_functions();
 	}
 
 	YosenTuple::YosenTuple(const std::vector<YosenObject*>& items)
 		: items(items)
 	{
-		register_member_functions();
+		register_member_native_functions();
 	}
 
 	YosenTuple::~YosenTuple()
@@ -48,7 +48,7 @@ namespace yosen
 		return "Tuple";
 	}
 
-	void YosenTuple::register_member_functions()
+	void YosenTuple::register_member_native_functions()
 	{
 	}
 }
