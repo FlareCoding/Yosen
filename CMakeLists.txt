@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;")
 
 set(CMAKE_CXX_STANDARD 17)
@@ -14,14 +14,15 @@ add_definitions(-DUNICODE -D_UNICODE)
 project(yosen_lang)
 include_directories(yosen_lang_core)
 
-set(OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE})
+set(OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_PATH})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_PATH})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_PATH})
 
 message("----------------------------------------------")
-message("-- CMake ${CMAKE_VERSION}")
-message("-- Build ${CMAKE_BUILD_TYPE} / ${CMAKE_SYSTEM_NAME}")
+message("-- CMake  ${CMAKE_VERSION}")
+message("-- Build  ${CMAKE_SYSTEM_NAME}")
+message("-- OutDir ${OUTPUT_PATH}")
 message("")
 message("")
 

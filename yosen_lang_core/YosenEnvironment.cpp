@@ -102,6 +102,11 @@ namespace yosen
 		m_custom_class_builders[full_name] = builder_fn;
 	}
 	
+	bool YosenEnvironment::is_class_name(const std::string& name)
+	{
+		return m_custom_class_builders.find(name) != m_custom_class_builders.end();
+	}
+
 	YosenObject* YosenEnvironment::construct_class_instance(const std::string& name)
 	{
 		if (m_custom_class_builders.find(name) != m_custom_class_builders.end())

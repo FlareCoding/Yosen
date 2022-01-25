@@ -43,6 +43,11 @@ namespace yosen
 		);
 
 		YOSENAPI
+		bool is_class_name(
+			const std::string& name
+		);
+
+		YOSENAPI
 		YosenObject* construct_class_instance(
 			const std::string& name
 		);
