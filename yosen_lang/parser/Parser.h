@@ -92,6 +92,9 @@ namespace yosen::parser
 		// loops, or expressions.
 		ASTNode parse_statement();
 
+		// Parses an import statement
+		ASTNode parse_import_statement();
+
 		// Parses potential function calls, variable assignments,
 		// or expressions.
 		ASTNode parse_identifier();

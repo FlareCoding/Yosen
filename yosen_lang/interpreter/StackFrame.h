@@ -33,6 +33,9 @@ namespace yosen
 		// Names of allocated classes used within the function
 		std::vector<std::string> class_names;
 
+		// Names of imported libraries
+		std::vector<std::string> imported_library_names;
+
 		// Creates the needed entries for the variable
 		void add_variable(const std::string& name, YosenObject* obj = nullptr);
 
@@ -49,5 +52,9 @@ namespace yosen
 		// Returns the index of the class name,
 		// returns -1 if the name doesn't exist.
 		size_t get_class_name_index(const std::string& name);
+
+		// Returns the index of the imported library name,
+		// returns -1 if the name doesn't exist.
+		size_t get_imported_lib_name_index(const std::string& name);
 	};
 }

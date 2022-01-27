@@ -33,6 +33,9 @@ namespace yosen
 		// Compiles a generic statement AST node
 		void compile_statement(json11::Json* node_ptr, StackFrame& stack_frame, bytecode_t& bytecode);
 
+		// Compiles an import statement from the AST node
+		void compile_import_statement(json11::Json* node_ptr, StackFrame& stack_frame, bytecode_t& bytecode);
+
 		// Compiles a generic expression based on the AST node
 		void compile_expression(json11::Json* node_ptr, StackFrame& stack_frame, bytecode_t& bytecode);
 

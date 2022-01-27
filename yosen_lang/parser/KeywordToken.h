@@ -17,7 +17,9 @@ namespace yosen::parser
 		Else,
 		Class,
 		This,
-		New
+		New,
+		Import,
+		As
 	};
 
 	class KeywordToken : public Token

@@ -33,6 +33,8 @@ namespace yosen::parser
 			{ "class",		Keyword::Class	},
 			{ "this",		Keyword::This	},
 			{ "new",		Keyword::New	},
+			{ "import",		Keyword::Import	},
+			{ "as",			Keyword::As	},
 		};
 
 		std::unordered_map<std::string, Operator> single_char_operators = {

@@ -14,4 +14,5 @@ namespace yosen::parser
 	constexpr auto ASTNodeType_Identifier			= "identifier";
 	constexpr auto ASTNodeType_Literal				= "literal";
 	constexpr auto ASTNodeType_ClassInstantiation	= "class_instantiation";
+	constexpr auto ASTNodeType_Import				= "import";
 }

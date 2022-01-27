@@ -94,6 +94,12 @@ namespace yosen
                 printf("ALLOC_OBJECT 0x%x\n", *it);
                 break;
             }
+            case opcodes::IMPORT_LIB:
+            {
+                it++;
+                printf("IMPORT_LIB 0x%x\n", *it);
+                break;
+            }
             default:
                 printf("0x%x ", *it);
             }
@@ -158,7 +164,10 @@ namespace yosen
         auto& node = *node_ptr;
         auto type = node["type"].string_value();
 
-        if (type._Equal(parser::ASTNodeType_VariableDeclaration))
+        if (type._Equal(parser::ASTNodeType_Import))
+            compile_import_statement(node_ptr, stack_frame, bytecode);
+
+        else if (type._Equal(parser::ASTNodeType_VariableDeclaration))
             compile_variable_declaration(node_ptr, stack_frame, bytecode);
 
         else if (type._Equal(parser::ASTNodeType_VariableAssignment))
@@ -166,6 +175,26 @@ namespace yosen
 
         if (type._Equal(parser::ASTNodeType_FunctionCall))
             compile_function_call(node_ptr, stack_frame, bytecode);
+    }
+
+    void YosenCompiler::compile_import_statement(json11::Json* node_ptr, StackFrame& stack_frame, bytecode_t& bytecode)
+    {
+        auto& node = *node_ptr;
+        auto library_name = node["library"].string_value();
+
+        // Get library name index in the list of library names in a stack frame
+        auto library_name_index = stack_frame.get_imported_lib_name_index(library_name);
+
+        // Check if library name has not occured yet
+        if (library_name_index == -1)
+        {
+            library_name_index = stack_frame.imported_library_names.size();
+            stack_frame.imported_library_names.push_back(library_name);
+        }
+
+        // Create the bytecode for allocating the object
+        bytecode.push_back(opcodes::IMPORT_LIB);
+        bytecode.push_back(static_cast<opcodes::opcode_t>(library_name_index));
     }
 
     void YosenCompiler::compile_expression(json11::Json* node_ptr, StackFrame& stack_frame, bytecode_t& bytecode)

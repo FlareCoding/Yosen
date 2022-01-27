@@ -207,6 +207,9 @@ namespace yosen::parser
 
 	ASTNode Parser::parse_statement()
 	{
+		if (is_keyword(current_token, Keyword::Import))
+			return parse_import_statement();
+
 		if (is_keyword(current_token, Keyword::Var))
 			return parse_variable_declaration();
 
@@ -214,6 +217,22 @@ namespace yosen::parser
 			return parse_identifier();
 
 		return ASTNode();
+	}
+
+	ASTNode Parser::parse_import_statement()
+	{
+		expect(Keyword::Import);
+
+		// Get the imported library name
+		auto lib_name = as<IdentifierToken>(current_token)->value;
+		expect(TokenType::Identifier);
+		expect(Symbol::Semicolon);
+
+		ASTNode node;
+		node["type"] = ASTNodeType_Import;
+		node["library"] = lib_name;
+
+		return node;
 	}
 	
 	ASTNode Parser::parse_identifier()

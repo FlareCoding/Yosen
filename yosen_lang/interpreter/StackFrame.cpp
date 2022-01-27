@@ -52,4 +52,18 @@ namespace yosen
 
         return -1;
     }
+    
+    size_t StackFrame::get_imported_lib_name_index(const std::string& name)
+    {
+        auto it = std::find(
+            imported_library_names.begin(),
+            imported_library_names.end(),
+            name
+        );
+
+        if (it != imported_library_names.end())
+            return it - imported_library_names.begin();
+
+        return -1;
+    }
 }

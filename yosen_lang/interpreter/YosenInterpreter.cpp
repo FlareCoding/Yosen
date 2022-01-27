@@ -380,6 +380,17 @@ namespace yosen
             parameter_stacks.top().push_back((*LLOref)->clone());
             break;
         }
+        case opcodes::IMPORT_LIB:
+        {
+            // Operand is the key of the register into which the loaded object has to be copied
+            auto operand = ops[1];
+            opcount = 2;
+
+            auto lib_name = stack_frame.imported_library_names[operand];
+            m_env->load_yosen_module(lib_name);
+
+            break;
+        }
         case opcodes::ALLOC_OBJECT:
         {
             // Operand is the key of the register into which the loaded object has to be copied

@@ -45,9 +45,13 @@ namespace yosen
 		*/
 		constexpr opcode_t REG_STORE	= 0x91;
 
-		// Allocates a new instance of a class and stores it in the AOR (Allocated Object Register)
+		// Allocates a new instance of a class and stores it in the AOR (Allocated Object Register).
 		// 1st Operand:	index of the class name in the frame's class names array.
-		constexpr opcode_t ALLOC_OBJECT	= 0x99;
+		constexpr opcode_t ALLOC_OBJECT	= 0x95;
+
+		// Imports a dynamic module or library.
+		// 1st Operand:	index of the library name in the frame's imported library names array.
+		constexpr opcode_t IMPORT_LIB	= 0x99;
 
 #define RETURN REG_STORE, 0x02
 	}
