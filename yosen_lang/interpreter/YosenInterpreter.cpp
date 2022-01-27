@@ -93,6 +93,12 @@ namespace yosen
             ex.to_string().c_str()
         );
 
+        if (m_interactive_mode)
+        {
+            m_interactive_shell_exception_occured = true;
+            return;
+        }
+
         shutdown();
         exit(1);
     }
@@ -217,6 +223,10 @@ namespace yosen
 	
 	void YosenInterpreter::run_interactive_shell()
 	{
+        // Tell the interpreter that it is
+        // now running in the interactive console mode.
+        m_interactive_mode = true;
+
         // Create an empty parameter stack to be used by the global function
         parameter_stacks.push({});
 
@@ -295,6 +305,15 @@ namespace yosen
 	{
         for (size_t i = 0; i < bytecode.size();)
         {
+            // If an exception occurs in the interactive console mode,
+            // then the shell should abandon processing the current statement.
+            if (m_interactive_mode &&
+                m_interactive_shell_exception_occured)
+            {
+                m_interactive_shell_exception_occured = false;
+                break;
+            }
+
             auto incr = execute_instruction(stack_frame, &bytecode[i]);
             i += incr;
         }
@@ -403,6 +422,7 @@ namespace yosen
             {
                 auto ex_reason = "Class name \"" + class_name + "\" not found";
                 m_env->throw_exception(RuntimeException(ex_reason));
+                return 0;
             }
 
             // Process parameters
@@ -466,6 +486,7 @@ namespace yosen
                 {
                     auto ex_reason = "Member function \"" + fn_name + "\" not found";
                     m_env->throw_exception(RuntimeException(ex_reason));
+                    return 0;
                 }
             }
             else
@@ -515,6 +536,7 @@ namespace yosen
                 {
                     auto ex_reason = "Static function \"" + fn_name + "\" not found";
                     m_env->throw_exception(RuntimeException(ex_reason));
+                    return 0;
                 }
             }
 

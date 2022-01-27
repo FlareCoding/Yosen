@@ -39,9 +39,16 @@ namespace yosen
 		void destroy_stack_frame(StackFrame& stack_frame);
 
 	private:
-		YosenEnvironment* m_env;
+		YosenEnvironment*	m_env;
+		YosenCompiler		m_compiler;
 
-		YosenCompiler m_compiler;
+		// Specifies whether the interpreter is
+		// running in the interactive console mode.
+		bool m_interactive_mode = false;
+
+		// Tells the interactive console to stop interpreting
+		// the current command due to an exception occuring.
+		bool m_interactive_shell_exception_occured = false;
 
 		// Reference to the Last Loaded Object
 		YosenObject** LLOref = nullptr;
