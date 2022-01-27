@@ -1,5 +1,6 @@
 // First ever Yosen test
 
+/*
 func reverse(str) {
 	println(str.reverse());
 }
@@ -13,7 +14,14 @@ func main(args) {
 	var str = input();
 	reverse(str);
 
-    var foo = new std::TestStdClass();
-    println(foo);
-    foo.test_fn();
+    //var foo = new std::TestStdClass();
+    //println(foo);
+    //foo.test_fn();
 }
+*/
+
+var test = "TestString";
+println(test);
+
+test = 45;
+println(test);

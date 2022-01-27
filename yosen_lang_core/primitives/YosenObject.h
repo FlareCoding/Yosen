@@ -11,7 +11,7 @@ namespace yosen
 	class YosenObject;
 	using ys_static_native_fn_t		= std::function<YosenObject* (YosenObject*)>;
 	using ys_member_native_fn_t		= std::function<YosenObject* (YosenObject*, YosenObject*)>;
-	using ys_class_builder_fn_t		= std::function<YosenObject* ()>;
+	using ys_class_builder_fn_t		= std::function<YosenObject* (YosenObject*)>;
 
 	class YosenObject
 	{

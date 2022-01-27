@@ -35,7 +35,7 @@ namespace yosen
 		{
 			result += items[i]->to_string();
 
-			if (i == items.size() - 2)
+			if (i <= items.size() - 2)
 				result += ", ";
 		}
 		

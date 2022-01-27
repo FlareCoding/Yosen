@@ -23,6 +23,8 @@ namespace yosen::parser
 		TokenType	type = TokenType::Empty;
 
 		virtual std::string to_string();
+
+		static std::string token_type_to_string(TokenType type);
 	};
 
 	template <typename T>

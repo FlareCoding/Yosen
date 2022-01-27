@@ -22,5 +22,7 @@ namespace yosen::parser
 
 		Symbol		symbol;
 		std::string value;
+
+		static std::string symbol_to_string(Symbol symbol);
 	};
 }

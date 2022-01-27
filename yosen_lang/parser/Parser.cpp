@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include <YosenEnvironment.h>
 
 namespace yosen::parser
 {
@@ -39,23 +40,37 @@ namespace yosen::parser
 	{
 		Lexer lexer;
 		token_pool = lexer.construct_token_pool(source);
-
 		current_token = token_pool->next(nullptr);
 
 		return construct_AST();
+	}
+
+	AST Parser::parse_single_statement(std::string& source)
+	{
+		Lexer lexer;
+		token_pool = lexer.construct_token_pool(source);
+		current_token = token_pool->next(nullptr);
+
+		return AST(parse_statement());
+
 	}
 
 	TokenRef<Token> Parser::expect(Symbol symbol)
 	{
 		if (current_token->type != TokenType::Symbol)
 		{
-			throw "Expected a symbol";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + 
+							 " - expected a symbol \"" + 
+							 SymbolToken::symbol_to_string(symbol) + "\"";
+
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
 		if (as<SymbolToken>(current_token)->symbol != symbol)
 		{
-			throw "Unexpected symbol found";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected symbol found";
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
@@ -69,13 +84,15 @@ namespace yosen::parser
 	{
 		if (current_token->type != TokenType::Keyword)
 		{
-			throw "Expected a keyword";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected a keyword";
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
 		if (as<KeywordToken>(current_token)->keyword != keyword)
 		{
-			throw "Unexpected keyword found";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected keyword found";
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
@@ -89,13 +106,15 @@ namespace yosen::parser
 	{
 		if (current_token->type != TokenType::Operator)
 		{
-			throw "Expected an operator";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected an operator";
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
 		if (as<OperatorToken>(current_token)->op != op)
 		{
-			throw "Unexpected operator found";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected operator found";
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
@@ -109,7 +128,8 @@ namespace yosen::parser
 	{
 		if (current_token->type != type)
 		{
-			throw "Unexpected token type";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected symbol: " + Token::token_type_to_string(type);
+			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
 
@@ -151,58 +171,133 @@ namespace yosen::parser
 
 		return true;
 	}
+
+	bool Parser::is_stop_symbol(TokenRef<Token> token, const std::initializer_list<Symbol>& stop_symbols)
+	{
+		for (auto& symbol : stop_symbols)
+			if (is_symbol(token, symbol))
+				return true;
+
+		return false;
+	}
 	
 	AST Parser::construct_AST()
 	{
-		AST ast;
-
+		json11::Json::array nodes;
+		
 		while (current_token)
 		{
-			parse_segment(ast);
+			auto node = parse_block();
+			nodes.push_back(node);
 
-			// Make sure to advance only if the current token is not nullptr (eof)
-			/*if (current_token)
-				current_token = next_token();*/
+			current_token = next_token();
+			break;
 		}
 
-		return ast;
+		return json11::Json(nodes);
 	}
 	
-	void Parser::parse_segment(AST& ast)
+	ASTNode Parser::parse_block()
 	{
-		if (is_keyword(current_token, Keyword::Func))
-		{
-			auto node = parse_function_declaration();
-			ast.functions.push_back(node);
-		}
+		/*if (is_keyword(current_token, Keyword::Func))
+			return parse_function_declaration();*/
+
+		return parse_statement();
 	}
 
 	ASTNode Parser::parse_statement()
 	{
 		if (is_keyword(current_token, Keyword::Var))
-		{
 			return parse_variable_declaration();
-		}
 
 		if (current_token->type == TokenType::Identifier)
-		{
 			return parse_identifier();
-		}
 
-		// Check if it's a semicolon, then continue onto the next token
-		if (is_symbol(current_token, Symbol::Semicolon))
-		{
-			current_token = next_token();
-			return ASTNode();
-		}
-
-		throw "Unknown statement";
 		return ASTNode();
 	}
 	
-	ASTNode Parser::parse_expression(Symbol stop_symbol)
+	ASTNode Parser::parse_identifier()
 	{
-		if (is_symbol(current_token, stop_symbol))
+		// Get the identifier value
+		auto identifier = as<IdentifierToken>(current_token)->value;
+		expect(TokenType::Identifier);
+
+		// Check for namespace presence
+		while (is_operator(current_token, Operator::Namespace))
+		{
+			expect(Operator::Namespace);
+			identifier.append("::");
+
+			auto next_id_token = expect(TokenType::Identifier);
+			identifier.append(as<IdentifierToken>(next_id_token)->value);
+		}
+
+		// Check for child elements or member functions (i.e obj.item or str.reverse())
+		if (is_symbol(current_token, Symbol::Period))
+			return parse_object_member(identifier);
+
+		// Check if it's a function call
+		if (is_symbol(current_token, Symbol::ParenthesisOpen))
+			return parse_function_call(identifier);
+
+		// Check if it's a variable assignment
+		if (is_operator(current_token, Operator::Assignment))
+		{
+			// Eat the assignment token
+			expect(Operator::Assignment);
+
+			// Parse the assigned value as an expression
+			auto value = parse_expression({ Symbol::Semicolon });
+
+			ASTNode node;
+			node["type"] = ASTNodeType_VariableAssignment;
+			node["name"] = identifier;
+			node["value"] = value;
+
+			expect(Symbol::Semicolon);
+
+			return node;
+		}
+
+		ASTNode node;
+		node["type"] = ASTNodeType_Identifier;
+		node["value"] = identifier;
+
+		return node;
+	}
+
+	ASTNode Parser::parse_object_member(const std::string& parent_object)
+	{
+		expect(Symbol::Period);
+
+		// Get the identifier value
+		auto identifier = as<IdentifierToken>(current_token)->value;
+		expect(TokenType::Identifier);
+
+		// Check for namespace presence
+		while (is_operator(current_token, Operator::Namespace))
+		{
+			expect(Operator::Namespace);
+			identifier.append("::");
+
+			auto next_id_token = expect(TokenType::Identifier);
+			identifier.append(as<IdentifierToken>(next_id_token)->value);
+		}
+
+		// Check if it's a function call
+		if (is_symbol(current_token, Symbol::ParenthesisOpen))
+		{
+			auto function_call_node = parse_function_call(identifier);
+			function_call_node["caller"] = parent_object;
+			return function_call_node;
+		}
+
+		return ASTNode();
+	}
+	
+	ASTNode Parser::parse_expression(const std::initializer_list<Symbol>& stop_symbols)
+	{
+		if (is_stop_symbol(current_token, stop_symbols))
 		{
 			throw "Expected an expression";
 		}
@@ -236,11 +331,42 @@ namespace yosen::parser
 		// Prepare parsing the left hand side of the expression
 		ASTNode lhs;
 
-		// Check if left hand side is a nested expression
-		if (is_symbol(current_token, Symbol::ParenthesisOpen))
+		// Checking if current token is an identifier
+		if (current_token->type == TokenType::Identifier)
 		{
+			lhs = parse_identifier();
+		}
+		else if (is_keyword(current_token, Keyword::New))
+		{
+			// Check if "new" object is being allocated
+			expect(Keyword::New);
+
+			// Get the class name
+			auto id_token = expect(TokenType::Identifier);
+			auto class_name = as<IdentifierToken>(id_token)->value;
+
+			// Check for namespace presence
+			while (is_operator(current_token, Operator::Namespace))
+			{
+				expect(Operator::Namespace);
+				class_name.append("::");
+
+				auto next_id_token = expect(TokenType::Identifier);
+				class_name.append(as<IdentifierToken>(next_id_token)->value);
+			}
+
+			auto node = parse_function_call(class_name);
+			node["type"] = ASTNodeType_ClassInstantiation;
+
+			return node;
+		}
+		else if (is_symbol(current_token, Symbol::ParenthesisOpen))
+		{
+			// Check if left hand side is a nested expression
 			expect(Symbol::ParenthesisOpen);
-			lhs = parse_expression(Symbol::ParenthesisClose);
+			lhs = parse_expression({ Symbol::ParenthesisClose });
+
+			expect(Symbol::ParenthesisClose);
 		}
 		else if (current_token->type == TokenType::LiteralValue)
 		{
@@ -253,16 +379,14 @@ namespace yosen::parser
 
 			expect(TokenType::LiteralValue);
 		}
-		else if (current_token->type == TokenType::Identifier)
-			lhs = parse_identifier();
 		else
 			return ASTNode();
 
 		// If stop symbol is found, then return the
 		// left hand side of the expression as the value.
-		if (is_symbol(current_token, stop_symbol))
+		if (is_stop_symbol(current_token, stop_symbols))
 		{
-			expect(stop_symbol);
+			//expect(as<SymbolToken>(current_token)->symbol);
 			return lhs;
 		}
 
@@ -277,130 +401,32 @@ namespace yosen::parser
 		return node;
 	}
 
-	ASTNode Parser::parse_identifier()
+	ASTNode Parser::parse_function_call(const std::string& fn_name)
 	{
-		auto id_token = expect(TokenType::Identifier);
-
-		// Check if it's a function call
-		if (is_symbol(current_token, Symbol::ParenthesisOpen))
-		{
-			expect(Symbol::ParenthesisOpen);
-
-			// Parse function arguments
-			json11::Json::array args;
-
-			while (!is_symbol(current_token, Symbol::ParenthesisClose))
-			{
-				auto arg = parse_expression(Symbol::Comma);
-				args.push_back(arg);
-			}
-			expect(Symbol::ParenthesisClose);
-
-			ASTNode node;
-			node["type"] = ASTNodeType_FunctionCall;
-			node["name"] = as<IdentifierToken>(id_token)->value;
-			node["args"] = args;
-
-			return node;
-		}
-
-		// Check if a member variable/function is being accessed/called
-		if (is_symbol(current_token, Symbol::Period))
-		{
-			expect(Symbol::Period);
-
-			auto member_node = parse_identifier();
-			member_node["caller_object"] = as<IdentifierToken>(id_token)->value;
-
-			return member_node;
-		}
-
-		// Check if it's an assignment operation
-		if (is_operator(current_token, Operator::Assignment))
-		{
-			// Eat the assignment token
-			expect(Operator::Assignment);
-
-			// Parse the assigned value as an expression
-			auto value = parse_expression(Symbol::Semicolon);
-
-			ASTNode node;
-			node["type"] = ASTNodeType_VariableAssignment;
-			node["name"] = as<IdentifierToken>(id_token)->value;
-			node["value"] = value;
-
-			return node;
-		}
-
-		ASTNode node;
-		node["type"] = ASTNodeType_Identifier;
-		node["value"] = as<IdentifierToken>(id_token)->value;
-
-		return node;
-	}
-
-	ASTNode Parser::parse_function_declaration()
-	{
-		ASTNode node;
-
-		// Parse function name
-		expect(Keyword::Func);
-		auto id_token = expect(TokenType::Identifier);
-
-		// Parse function parameters
-		json11::Json::array params;
-
 		expect(Symbol::ParenthesisOpen);
+
+		// Parse function arguments
+		json11::Json::array args;
+
 		while (!is_symbol(current_token, Symbol::ParenthesisClose))
 		{
-			// Get the identifier token that represents the variable name
-			auto param_token = expect(TokenType::Identifier);
+			auto arg = parse_expression({ Symbol::Comma, Symbol::ParenthesisClose });
+			args.push_back(arg);
 
-			// Add the variable name to the list of function parameters
-			params.push_back(as<IdentifierToken>(param_token)->value);
-
-			// If the next token is a closed parenthesis, stop looping,
-			// otherwise expect a comma as a variable separator.
 			if (is_symbol(current_token, Symbol::ParenthesisClose))
 				break;
 
-			expect(Symbol::Comma);
+			expect(TokenType::Symbol);
 		}
 		expect(Symbol::ParenthesisClose);
-		
-		// After function signature has to follow a function body,
-		// function body is just a list of statements.
-		json11::Json::array function_body;
 
-		// Prepare ahead of time a return statement entry
-		node[ASTNodeType_ReturnStatement] = json11::Json::NUL;
-
-		expect(Symbol::BraceOpen);
-		while (!is_symbol(current_token, Symbol::BraceClose))
-		{
-			auto body_node = parse_statement();
-			
-			if (!body_node.empty())
-			{
-				if (body_node["type"].string_value()._Equal(ASTNodeType_ReturnStatement))
-					node[ASTNodeType_ReturnStatement] = body_node;
-				else
-					function_body.push_back(body_node);
-			}
-
-			if (is_symbol(current_token, Symbol::BraceClose))
-				break;
-		}
-		expect(Symbol::BraceClose);
-
-		node["type"]	= ASTNodeType_FunctionDeclaration;
-		node["name"]	= as<IdentifierToken>(id_token)->value;
-		node["params"]	= params;
-		node["body"]	= function_body;
-
+		ASTNode node;
+		node["type"] = ASTNodeType_FunctionCall;
+		node["name"] = fn_name;
+		node["args"] = args;
 		return node;
 	}
-	
+
 	ASTNode Parser::parse_variable_declaration()
 	{
 		// Parse the name of the variable
@@ -413,7 +439,9 @@ namespace yosen::parser
 
 		node["type"] = ASTNodeType_VariableDeclaration;
 		node["name"] = as<IdentifierToken>(name_token)->value;
-		node["value"] = parse_expression(Symbol::Semicolon);
+		node["value"] = parse_expression({ Symbol::Semicolon });
+
+		expect(Symbol::Semicolon);
 
 		return node;
 	}

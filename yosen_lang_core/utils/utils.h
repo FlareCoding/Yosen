@@ -2,6 +2,7 @@
 #include <YosenCore.h>
 #include <string>
 #include <filesystem>
+#include <functional>
 
 namespace yosen::utils
 {
@@ -21,4 +22,6 @@ namespace yosen::utils
 	YOSENAPI void*	get_proc_address(void* lib, const std::string& proc_name);
 
 	YOSENAPI void	log_colored(ConsoleColor color, std::string fmt, ...);
+
+	YOSENAPI void	set_keyboard_interrupt_handler(std::function<void()> handler);
 }

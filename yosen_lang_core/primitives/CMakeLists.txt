@@ -8,6 +8,8 @@ set(
     ${cwd}/YosenInteger.h
     ${cwd}/YosenString.h
     ${cwd}/YosenTuple.h
+    ${cwd}/YosenList.h
+    ${cwd}/primitives.h
 
     PARENT_SCOPE
 )
@@ -19,6 +21,7 @@ set(
     ${cwd}/YosenInteger.cpp
     ${cwd}/YosenString.cpp
     ${cwd}/YosenTuple.cpp
+    ${cwd}/YosenList.cpp
 
     PARENT_SCOPE
 )

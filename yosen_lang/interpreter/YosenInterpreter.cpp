@@ -1,20 +1,44 @@
 #include "YosenInterpreter.h"
+#include <iostream>
+
+namespace yosen::utils
+{
+    std::string& ltrim(std::string& s, const char* t = " \t\n\r\f\v")
+    {
+        s.erase(0, s.find_first_not_of(t));
+        return s;
+    }
+
+    std::string& rtrim(std::string& s, const char* t = " \t\n\r\f\v")
+    {
+        s.erase(s.find_last_not_of(t) + 1);
+        return s;
+    }
+
+    std::string& trim(std::string& s, const char* t = " \t\n\r\f\v")
+    {
+        return ltrim(rtrim(s, t), t);
+    }
+}
 
 namespace yosen
 {
-	YosenEnvironment s_dummy_env;
-
-	YosenInterpreter::YosenInterpreter()
-		: m_env(s_dummy_env)
-	{
-	}
-	
-	void YosenInterpreter::init()
+    void YosenInterpreter::init()
 	{
 		// Initialize the current environment
 		YosenEnvironment::init();
 
-		m_env = YosenEnvironment::get();
+		m_env = &YosenEnvironment::get();
+
+        // Register keyboard interrupt handler
+        utils::set_keyboard_interrupt_handler([this]() {
+            m_env->throw_exception(KeyboardInterruptException());
+        });
+
+        // Register the exception handler
+        m_env->register_exception_handler([this](const YosenException& ex) {
+            main_exception_handler(ex);
+        });
 
 #if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
 		utils::log_colored(
@@ -26,8 +50,31 @@ namespace yosen
 	
 	void YosenInterpreter::shutdown()
 	{
+        for (auto& stack_frame : m_allocated_stack_frames)
+        {
+            // Deallocated created resources off the stack frame
+            deallocate_frame(stack_frame);
+
+            // Completely destroy the last resources on the stack frame
+            destroy_stack_frame(stack_frame);
+        }
+
+        // If the return register is not empty, deallocate the existing object
+        if (registers[RegisterType::ReturnRegister] != nullptr)
+        {
+            free_object(registers[RegisterType::ReturnRegister]);
+            registers[RegisterType::ReturnRegister] = nullptr;
+        }
+
+        // If the allocated object register is not empty, deallocate the existing object
+        if (registers[RegisterType::AllocatedObjectRegister] != nullptr)
+        {
+            free_object(registers[RegisterType::AllocatedObjectRegister]);
+            registers[RegisterType::AllocatedObjectRegister] = nullptr;
+        }
+
 		// Shutdown the environment
-		m_env.shutdown();
+		m_env->shutdown();
 
 #if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
 		utils::log_colored(
@@ -37,26 +84,21 @@ namespace yosen
 		);
 #endif
 	}
-	
-	void YosenInterpreter::run_interactive_shell()
-	{
-		/*YosenObject* obj = m_env.construct_class_instance("std::TestStdClass");
-		auto native_result = obj->call_member_native_function("test_fn", YosenObject_Null);
 
-		auto fn = m_env.get_static_native_function("println");
-		if (fn)
-		{
-			std::vector<YosenObject*> arg_vec = { obj->clone() };
-			auto args = allocate_object<YosenTuple>(arg_vec);
-			auto result = fn(args);
+    void YosenInterpreter::main_exception_handler(const YosenException& ex)
+    {
+        utils::log_colored(
+            utils::ConsoleColor::Yellow,
+            "%s\n",
+            ex.to_string().c_str()
+        );
 
-			free_object(result);
-			free_object(args);
-		}
+        shutdown();
+        exit(1);
+    }
 
-		free_object(obj);
-		free_object(native_result);*/
-
+    void YosenInterpreter::run_source(std::string& source)
+    {
         StackFrame frame;
         bytecode_t bytecode;
 
@@ -132,7 +174,7 @@ namespace yosen
         deallocate_frame(frame);
 
         // Completely destroy the last resources on the stack frame
-		destroy_stack_frame(frame);
+        destroy_stack_frame(frame);
 
         // If the return register is not empty, deallocate the existing object
         if (registers[RegisterType::ReturnRegister] != nullptr)
@@ -146,6 +188,69 @@ namespace yosen
         {
             free_object(registers[RegisterType::AllocatedObjectRegister]);
             registers[RegisterType::AllocatedObjectRegister] = nullptr;
+        }
+    }
+
+    std::string YosenInterpreter::read_block_source(const std::string& header, const std::string& tab_space)
+    {
+        std::string result = header + "\n";
+        char last_char = '\0';
+        std::string next_tab_space = tab_space + "\t";
+
+        while (last_char != '}')
+        {
+            printf("%s", tab_space.c_str());
+            std::string input;
+            std::getline(std::cin, input);
+            utils::trim(input);
+
+            last_char = input.back();
+
+            if (last_char == '{')
+                input = read_block_source(input, next_tab_space);
+
+            result += input + "\n";
+        }
+
+        return result;
+    }
+	
+	void YosenInterpreter::run_interactive_shell()
+	{
+        // Create an empty parameter stack to be used by the global function
+        parameter_stacks.push({});
+
+        StackFrame global_stack_frame;
+        global_stack_frame.name = "__ys_global_stack_frame";
+
+        // Register the stack frame
+        m_allocated_stack_frames.push_back(global_stack_frame);
+
+        while (true)
+        {
+            printf("$> ");
+
+            std::string input;
+            std::getline(std::cin, input);
+
+            utils::trim(input);
+
+            if (input.empty())
+                continue;
+
+            if (input == "exit")
+                break;
+
+            if (input.back() == '{')
+            {
+                input = read_block_source(input, "   ");
+                printf("\n");
+            }
+
+            auto& stack_frame = m_allocated_stack_frames[0];
+
+            auto bytecode = m_compiler.compile_single_statement(input, stack_frame);
+            execute_bytecode(stack_frame, bytecode);
         }
 	}
 
@@ -283,15 +388,25 @@ namespace yosen
 
             auto class_name = stack_frame.class_names[operand];
 
-            if (!m_env.is_class_name(class_name))
+            if (!m_env->is_class_name(class_name))
             {
-                utils::log_colored(utils::ConsoleColor::Red, "[*] ");
-                printf("Class name not found: \"%s\"\n", class_name.c_str());
-                exit(1);
-                break;
+                auto ex_reason = "Class name \"" + class_name + "\" not found";
+                m_env->throw_exception(RuntimeException(ex_reason));
             }
 
-            auto instance = m_env.construct_class_instance(class_name);
+            // Process parameters
+            auto& parameter_stack = parameter_stacks.top();
+            auto param_count = parameter_stack.size();
+            YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
+
+            // Instantiate the class
+            auto instance = m_env->construct_class_instance(class_name, param_pack);
+
+            // Deallocate the parameter pack object
+            free_object(param_pack);
+
+            // Clear the parameter stack
+            parameter_stack.clear();
 
             // Retrieve the original object
             auto original_object = registers[RegisterType::AllocatedObjectRegister];
@@ -308,7 +423,7 @@ namespace yosen
         case opcodes::CALL:
         {
             auto fn_index = ops[1];
-            auto owner_var = ops[2];
+            auto caller_var = ops[2];
             auto fn_name = stack_frame.function_names[fn_index];
             opcount = 3;
 
@@ -319,7 +434,7 @@ namespace yosen
 
             YosenObject* return_val = nullptr;
 
-            if (owner_var)
+            if (caller_var)
             {
                 // Member function
                 auto caller_object = *LLOref;
@@ -338,8 +453,8 @@ namespace yosen
                 }
                 else
                 {
-                    utils::log_colored(utils::ConsoleColor::Red, "[*] ");
-                    printf("Member function not found: \"%s\"\n", fn_name.c_str());
+                    auto ex_reason = "Member function \"" + fn_name + "\" not found";
+                    m_env->throw_exception(RuntimeException(ex_reason));
                 }
             }
             else
@@ -373,9 +488,9 @@ namespace yosen
                 //}
 
                 // Check for a native function
-                if (m_env.is_static_native_function(fn_name))
+                if (m_env->is_static_native_function(fn_name))
                 {
-                    auto fn = m_env.get_static_native_function(fn_name);
+                    auto fn = m_env->get_static_native_function(fn_name);
                     return_val = fn(param_pack);
 
                     // If the return register is not empty, deallocate the existing object
@@ -387,8 +502,8 @@ namespace yosen
                 }
                 else
                 {
-                    utils::log_colored(utils::ConsoleColor::Red, "[*] ");
-                    printf("Function not found: \"%s\"\n", fn_name.c_str());
+                    auto ex_reason = "Static function \"" + fn_name + "\" not found";
+                    m_env->throw_exception(RuntimeException(ex_reason));
                 }
             }
 

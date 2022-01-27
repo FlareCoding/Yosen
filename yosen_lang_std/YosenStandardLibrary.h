@@ -15,6 +15,6 @@ private:
 	YosenObject* test_fn(YosenObject* self, YosenObject* args);
 };
 
-YosenObject* test_std_class_builder();
+YosenObject* test_std_class_builder(YosenObject* args);
 
 YosenObject* _ys_std_println(YosenObject* args);

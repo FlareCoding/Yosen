@@ -1,13 +1,14 @@
 #pragma once
 #include <utils/utils.h>
+#include "YosenException.h"
 
 // Primitive Types
-#include <primitives/YosenTuple.h>
-#include <primitives/YosenInteger.h>
-#include <primitives/YosenString.h>
+#include <primitives/primitives.h>
 
 namespace yosen
 {
+	using exception_handler_t = std::function<void(const YosenException& ex)>;
+
 	class YosenEnvironment
 	{
 	public:
@@ -49,7 +50,8 @@ namespace yosen
 
 		YOSENAPI
 		YosenObject* construct_class_instance(
-			const std::string& name
+			const std::string& name,
+			YosenObject* args
 		);
 
 		YOSENAPI
@@ -60,6 +62,21 @@ namespace yosen
 		YOSENAPI
 		void end_module_namespace();
 
+		YOSENAPI
+		void register_exception_handler(
+			exception_handler_t handler
+		);
+
+		YOSENAPI
+		void throw_exception(
+			const YosenException& ex
+		);
+
+		YOSENAPI 
+		void throw_exception(
+			const std::string& reason
+		);
+
 	private:
 		void initialize_standard_library();
 
@@ -69,5 +86,9 @@ namespace yosen
 
 		std::map<std::string, ys_static_native_fn_t> m_static_native_functions;
 		std::map<std::string, ys_class_builder_fn_t> m_custom_class_builders;
+
+	private:
+		// List of exception listeners
+		std::vector<exception_handler_t> m_exception_handlers;
 	};
 }

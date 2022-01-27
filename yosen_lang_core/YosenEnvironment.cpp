@@ -107,10 +107,10 @@ namespace yosen
 		return m_custom_class_builders.find(name) != m_custom_class_builders.end();
 	}
 
-	YosenObject* YosenEnvironment::construct_class_instance(const std::string& name)
+	YosenObject* YosenEnvironment::construct_class_instance(const std::string& name, YosenObject* args)
 	{
 		if (m_custom_class_builders.find(name) != m_custom_class_builders.end())
-			return (m_custom_class_builders.at(name))();
+			return (m_custom_class_builders.at(name))(args);
 		else
 		{
 			printf("Class not found for '%s'\n", name.c_str());
@@ -134,7 +134,23 @@ namespace yosen
 		else
 			m_current_module_namespace.clear();
 	}
+
+	void YosenEnvironment::register_exception_handler(exception_handler_t handler)
+	{
+		m_exception_handlers.insert(m_exception_handlers.begin(), handler);
+	}
+
+	void YosenEnvironment::throw_exception(const YosenException& ex)
+	{
+		for (auto& listener : m_exception_handlers)
+			listener(ex);
+	}
 	
+	void YosenEnvironment::throw_exception(const std::string& reason)
+	{
+		throw_exception(YosenException(reason));
+	}
+
 	void YosenEnvironment::initialize_standard_library()
 	{
 		load_yosen_module("yosen_std_math");

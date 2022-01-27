@@ -8,7 +8,10 @@ namespace yosen::parser
 			return tokens[0];
 
 		auto idx = index_of(token);
-		if (idx == -1 || idx == tokens.size() - 1)
+		if (idx == tokens.size() - 1)
+			return tokens[0];
+
+		if (idx == -1)
 			return nullptr;
 
 		return tokens[idx + 1];

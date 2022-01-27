@@ -14,13 +14,15 @@ namespace yosen
 	class YosenInterpreter
 	{
 	public:
-		YosenInterpreter();
-
 		// Initializes the runtime environment
 		void init();
 
 		// Shuts down the runtime environment and deallocates memory
 		void shutdown();
+
+		// Compiles and runs a complete string of source code.
+		// ** Expects an entry point defined as "main" by default.
+		void run_source(std::string& source);
 
 		// Creates an interactive Yosen console that accepts
 		// a continuous input of source code commands.
@@ -37,7 +39,9 @@ namespace yosen
 		void destroy_stack_frame(StackFrame& stack_frame);
 
 	private:
-		YosenEnvironment& m_env;
+		YosenEnvironment* m_env;
+
+		YosenCompiler m_compiler;
 
 		// Reference to the Last Loaded Object
 		YosenObject** LLOref = nullptr;
@@ -53,9 +57,19 @@ namespace yosen
 		// Each stack frame has its own parameter stack to operate with to push variables onto
 		std::stack<std::vector<YosenObject*>> parameter_stacks;
 
+		// All allocated stack frames
+		std::vector<StackFrame> m_allocated_stack_frames;
+
 	private:
 		// Executes a single instruction that could consist of single or multiple opcodes.
 		// Returns number of opcodes processed.
 		size_t execute_instruction(StackFrame& stack_frame, opcodes::opcode_t* ops);
+
+		// Used within the interactive shell to parse function declarations
+		std::string read_block_source(const std::string& header, const std::string& tab_space);
+
+	private:
+		// Main exception handler
+		void main_exception_handler(const YosenException& ex);
 	};
 }

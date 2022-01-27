@@ -1,6 +1,6 @@
 #include "YosenStandardLibrary.h"
 
-YosenObject* test_std_class_builder()
+YosenObject* test_std_class_builder(YosenObject* args)
 {
 	return allocate_object<TestStdClass>();
 }

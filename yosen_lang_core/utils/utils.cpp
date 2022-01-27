@@ -9,6 +9,8 @@
 
 namespace yosen::utils
 {
+	static std::function<void()> s_keyboard_interrupt_handler_ref = nullptr;
+
 	void* load_library(const std::string& name)
 	{
 #ifdef _WIN32
@@ -105,6 +107,20 @@ namespace yosen::utils
 #ifdef _WIN32
 		// Restore the original console attributes
 		SetConsoleTextAttribute(hConsole, old_attribs);
+#endif
+	}
+	
+	void set_keyboard_interrupt_handler(std::function<void()> handler)
+	{
+		s_keyboard_interrupt_handler_ref = handler;
+
+#ifdef _WIN32
+		SetConsoleCtrlHandler([](DWORD dwCtrlType) {
+			s_keyboard_interrupt_handler_ref();
+			return FALSE;
+		}, TRUE);
+#else
+		throw "Not implemented yet";
 #endif
 	}
 }

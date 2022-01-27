@@ -27,5 +27,6 @@ namespace yosen::parser
 		And,
 		BitOr,
 		BitAnd,
+		Namespace,
 	};
 }

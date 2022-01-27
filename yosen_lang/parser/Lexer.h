@@ -47,6 +47,7 @@ namespace yosen::parser
 		};
 
 		std::unordered_map<std::string, Operator> double_char_operators = {
+			{ "::",		Operator::Namespace					},
 			{ "<=",		Operator::LessThanOrEqual			},
 			{ ">=",		Operator::GreaterThanOrEqual		},
 			{ "==",		Operator::Equequ					},

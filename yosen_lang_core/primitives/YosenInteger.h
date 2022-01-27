@@ -7,12 +7,12 @@ namespace yosen
 	{
 	public:
 		YOSENAPI YosenInteger() = default;
-		YOSENAPI YosenInteger(uint64_t val) : value(val) {}
+		YOSENAPI YosenInteger(int64_t val) : value(val) {}
 
 		YOSENAPI YosenObject* clone() override;
 		YOSENAPI std::string to_string() override;
 		YOSENAPI const char* runtime_name() const override;
 
-		uint64_t value = 0;
+		int64_t value = 0;
 	};
 }

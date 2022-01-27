@@ -3,14 +3,8 @@
 
 namespace yosen::parser
 {
-	using ASTNode = json11::Json::object;
-
-	class AST
-	{
-	public:
-		std::vector<json11::Json> functions;
-		std::vector<json11::Json> class_definitions;
-	};
+	using ASTNode	= json11::Json::object;
+	using AST		= json11::Json;
 
 	constexpr auto ASTNodeType_FunctionDeclaration	= "function_declaration";
 	constexpr auto ASTNodeType_FunctionCall			= "function_call";
@@ -19,4 +13,5 @@ namespace yosen::parser
 	constexpr auto ASTNodeType_ReturnStatement		= "return_statement";
 	constexpr auto ASTNodeType_Identifier			= "identifier";
 	constexpr auto ASTNodeType_Literal				= "literal";
+	constexpr auto ASTNodeType_ClassInstantiation	= "class_instantiation";
 }

@@ -16,6 +16,8 @@ add_library(
     YosenCore.h
     YosenEnvironment.h
     YosenEnvironment.cpp
+    YosenException.h
+    YosenException.cpp
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE YOSEN_BUILD)

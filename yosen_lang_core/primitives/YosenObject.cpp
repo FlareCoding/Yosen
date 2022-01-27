@@ -103,9 +103,9 @@ namespace yosen
 			switch (arg_type)
 			{
 			case 'i': {
-				uint64_t* p_arg = va_arg(args, uint64_t*);
+				int64_t* p_arg = va_arg(args, int64_t*);
 				YosenInteger* t_arg = reinterpret_cast<YosenInteger*>(args_tuple->items[i]);
-				if (strcmp(t_arg->runtime_name(), "Int") != 0)
+				if (strcmp(t_arg->runtime_name(), "Integer") != 0)
 				{
 					throw "Not an Integer";
 					return false;

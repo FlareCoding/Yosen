@@ -10,8 +10,13 @@ namespace yosen::parser
 	public:
 		Parser() = default;
 
-		// Initializes parser resources.
+		// Parses a complete string of source code
+		// into an Abstract Syntax Tree (AST).
 		AST parse_source(std::string& source);
+
+		// Parses a single block of source code
+		// into an AST node.
+		AST parse_single_statement(std::string& source);
 
 	private:
 		// Contains all the tokens
@@ -73,33 +78,35 @@ namespace yosen::parser
 		// whether or not it contains the specified operator.
 		bool is_operator(TokenRef<Token> token, Operator op);
 
+		// Checks is the token is one of the specified stop symbols
+		bool is_stop_symbol(TokenRef<Token> token, const std::initializer_list<Symbol>& stop_symbols);
+
 	private:
 		AST construct_AST();
 
-		// *General*
-		// Can parse top level function,
-		// class declarations, imports, and global variables.
-		void parse_segment(AST& ast);
+		// Parses any top level block of code: 
+		// class, function declaration, or any other statement.
+		ASTNode parse_block();
 
-		// *General*
-		// Can parse variable declarations, if/else statements,
+		// Parses variable declarations, if/else statements,
 		// loops, or expressions.
 		ASTNode parse_statement();
 
-		// *General*
-		// Parses an expression, whether it's a binary operation,
-		// function call, variable, or a literal value.
-		ASTNode parse_expression(Symbol stop_symbol);
-
-		// *General*
-		// Can parse single variable or a function call
+		// Parses potential function calls, variable assignments,
+		// or expressions.
 		ASTNode parse_identifier();
 
-		// *Specific*
-		// Parses specifically a function declaration
-		ASTNode parse_function_declaration();
+		// Parses member variables and member functions,
+		// (i.e obj.item or str.reverse())
+		ASTNode parse_object_member(const std::string& parent_object);
 
-		// *Specific*
+		// Parses an expression, whether it's a binary operation,
+		// function call, variable, or a literal value.
+		ASTNode parse_expression(const std::initializer_list<Symbol>& stop_symbols);
+
+		// Parses the function call
+		ASTNode parse_function_call(const std::string& fn_name);
+
 		// Parses specifically a variable declaration
 		ASTNode parse_variable_declaration();
 	};
