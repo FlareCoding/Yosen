@@ -64,6 +64,31 @@ namespace yosen
 			return nullptr;
 		}
 	}
+
+	void YosenEnvironment::register_static_runtime_function(const std::string& name, ys_runtime_function_t fn)
+	{
+		// Apply current namespace name to the function's name
+		auto full_name = m_current_module_namespace.empty() ? name : m_current_module_namespace + "::" + name;
+
+		// Register the function
+		m_static_runtime_functions[full_name] = fn;
+	}
+
+	bool YosenEnvironment::is_static_runtime_function(const std::string& name)
+	{
+		return m_static_runtime_functions.find(name) != m_static_runtime_functions.end();
+	}
+
+	ys_runtime_function_t YosenEnvironment::get_static_runtime_function(const std::string& name)
+	{
+		if (is_static_runtime_function(name))
+			return m_static_runtime_functions.at(name);
+		else
+		{
+			printf("Runtime function '%s' not found\n", name.c_str());
+			return { nullptr, std::vector<unsigned short>() };
+		}
+	}
 	
 	bool YosenEnvironment::load_yosen_module(const std::string& name)
 	{

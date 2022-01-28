@@ -29,14 +29,14 @@ namespace yosen
 		void run_interactive_shell();
 
 		// Executes the entire code of the function
-		void execute_bytecode(StackFrame& stack_frame, bytecode_t& bytecode);
+		void execute_bytecode(StackFramePtr stack_frame, bytecode_t& bytecode);
 
 		// Frees all objects in the stack frame
-		void deallocate_frame(StackFrame& stack_frame);
+		void deallocate_frame(StackFramePtr stack_frame);
 
 		// Deallocates final resources from each created
 		// stack frame making each stack frame unusable.
-		void destroy_stack_frame(StackFrame& stack_frame);
+		void destroy_stack_frame(StackFramePtr stack_frame);
 
 	private:
 		YosenEnvironment*	m_env;
@@ -65,12 +65,12 @@ namespace yosen
 		std::stack<std::vector<YosenObject*>> parameter_stacks;
 
 		// All allocated stack frames
-		std::vector<StackFrame> m_allocated_stack_frames;
+		std::vector<StackFramePtr> m_allocated_stack_frames;
 
 	private:
 		// Executes a single instruction that could consist of single or multiple opcodes.
 		// Returns number of opcodes processed.
-		size_t execute_instruction(StackFrame& stack_frame, opcodes::opcode_t* ops);
+		size_t execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops);
 
 		// Used within the interactive shell to parse function declarations
 		std::string read_block_source(const std::string& header, const std::string& tab_space);

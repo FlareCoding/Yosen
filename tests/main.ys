@@ -1,27 +1,22 @@
 // First ever Yosen test
 
-/*
+import yosen_std_math;
+
 func reverse(str) {
 	println(str.reverse());
 }
 
-func main(args) {
+func main()
+{
 	var age = 19;
 
-	println(args);
 	println(age);
 
-	var str = input();
+	var str = "Hello World";
+	println(str);
 	reverse(str);
 
-    //var foo = new std::TestStdClass();
-    //println(foo);
-    //foo.test_fn();
+	var foo = new std::TestStdClass();
+	println(foo);
+	foo.test_fn();
 }
-*/
-
-var test = "TestString";
-println(test);
-
-test = 45;
-println(test);

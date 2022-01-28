@@ -123,6 +123,9 @@ namespace yosen::parser
 			++lineno;
 		}
 
+		// Add an EOF token
+		token_pool->add(make_token<EOFToken>());
+
 		return token_pool;
 	}
 

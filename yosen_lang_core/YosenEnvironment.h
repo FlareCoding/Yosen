@@ -1,5 +1,6 @@
 #pragma once
 #include <utils/utils.h>
+#include "StackFrame.h"
 #include "YosenException.h"
 
 // Primitive Types
@@ -29,6 +30,22 @@ namespace yosen
 
 		YOSENAPI
 		ys_static_native_fn_t get_static_native_function(
+			const std::string& name
+		);
+
+		YOSENAPI
+		void register_static_runtime_function(
+			const std::string& name,
+			ys_runtime_function_t fn
+		);
+
+		YOSENAPI
+		bool is_static_runtime_function(
+			const std::string& name
+		);
+
+		YOSENAPI
+		ys_runtime_function_t get_static_runtime_function(
 			const std::string& name
 		);
 
@@ -85,6 +102,7 @@ namespace yosen
 		std::string m_current_module_namespace = "";
 
 		std::map<std::string, ys_static_native_fn_t> m_static_native_functions;
+		std::map<std::string, ys_runtime_function_t> m_static_runtime_functions;
 		std::map<std::string, ys_class_builder_fn_t> m_custom_class_builders;
 
 	private:

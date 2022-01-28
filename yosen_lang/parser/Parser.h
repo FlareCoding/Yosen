@@ -110,6 +110,9 @@ namespace yosen::parser
 		// Parses the function call
 		ASTNode parse_function_call(const std::string& fn_name);
 
+		// Parses the function declaration
+		ASTNode parse_function_declaration();
+
 		// Parses specifically a variable declaration
 		ASTNode parse_variable_declaration();
 	};

@@ -8,10 +8,13 @@
 
 namespace yosen
 {
+	class StackFrame;
 	class YosenObject;
+
 	using ys_static_native_fn_t		= std::function<YosenObject* (YosenObject*)>;
 	using ys_member_native_fn_t		= std::function<YosenObject* (YosenObject*, YosenObject*)>;
 	using ys_class_builder_fn_t		= std::function<YosenObject* (YosenObject*)>;
+	using ys_runtime_function_t		= std::pair<std::shared_ptr<StackFrame>, std::vector<unsigned short>>;
 
 	class YosenObject
 	{

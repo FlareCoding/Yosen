@@ -18,6 +18,8 @@ add_library(
     YosenEnvironment.cpp
     YosenException.h
     YosenException.cpp
+    StackFrame.h
+    StackFrame.cpp
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE YOSEN_BUILD)

@@ -185,13 +185,10 @@ namespace yosen::parser
 	{
 		json11::Json::array nodes;
 		
-		while (current_token)
+		while (current_token && current_token->type != TokenType::EOFToken)
 		{
 			auto node = parse_block();
 			nodes.push_back(node);
-
-			current_token = next_token();
-			break;
 		}
 
 		return json11::Json(nodes);
@@ -199,24 +196,33 @@ namespace yosen::parser
 	
 	ASTNode Parser::parse_block()
 	{
-		/*if (is_keyword(current_token, Keyword::Func))
-			return parse_function_declaration();*/
+		if (is_keyword(current_token, Keyword::Import))
+			return parse_import_statement();
+
+		if (is_keyword(current_token, Keyword::Func))
+			return parse_function_declaration();
 
 		return parse_statement();
 	}
 
 	ASTNode Parser::parse_statement()
 	{
+		ASTNode node;
+
 		if (is_keyword(current_token, Keyword::Import))
-			return parse_import_statement();
+			node = parse_import_statement();
 
-		if (is_keyword(current_token, Keyword::Var))
-			return parse_variable_declaration();
+		else if (is_keyword(current_token, Keyword::Var))
+			node = parse_variable_declaration();
 
-		if (current_token->type == TokenType::Identifier)
-			return parse_identifier();
+		else if (current_token->type == TokenType::Identifier)
+			node = parse_identifier();
 
-		return ASTNode();
+		// Check for semicolon presence
+		if (is_symbol(current_token, Symbol::Semicolon))
+			expect(Symbol::Semicolon);
+
+		return node;
 	}
 
 	ASTNode Parser::parse_import_statement()
@@ -443,6 +449,68 @@ namespace yosen::parser
 		node["type"] = ASTNodeType_FunctionCall;
 		node["name"] = fn_name;
 		node["args"] = args;
+		return node;
+	}
+
+	ASTNode Parser::parse_function_declaration()
+	{
+		ASTNode node;
+
+		// Parse function name
+		expect(Keyword::Func);
+		auto id_token = expect(TokenType::Identifier);
+
+		// Parse function parameters
+		json11::Json::array params;
+
+		expect(Symbol::ParenthesisOpen);
+		while (!is_symbol(current_token, Symbol::ParenthesisClose))
+		{
+			// Get the identifier token that represents the variable name
+			auto param_token = expect(TokenType::Identifier);
+
+			// Add the variable name to the list of function parameters
+			params.push_back(as<IdentifierToken>(param_token)->value);
+
+			// If the next token is a closed parenthesis, stop looping,
+			// otherwise expect a comma as a variable separator.
+			if (is_symbol(current_token, Symbol::ParenthesisClose))
+				break;
+
+			expect(Symbol::Comma);
+		}
+		expect(Symbol::ParenthesisClose);
+
+		// After function signature has to follow a function body,
+		// function body is just a list of statements.
+		json11::Json::array function_body;
+
+		// Prepare ahead of time a return statement entry
+		node[ASTNodeType_ReturnStatement] = json11::Json::NUL;
+
+		expect(Symbol::BraceOpen);
+		while (!is_symbol(current_token, Symbol::BraceClose))
+		{
+			auto body_node = parse_statement();
+
+			if (!body_node.empty())
+			{
+				if (body_node["type"].string_value()._Equal(ASTNodeType_ReturnStatement))
+					node[ASTNodeType_ReturnStatement] = body_node;
+				else
+					function_body.push_back(body_node);
+			}
+
+			if (is_symbol(current_token, Symbol::BraceClose))
+				break;
+		}
+		expect(Symbol::BraceClose);
+
+		node["type"] = ASTNodeType_FunctionDeclaration;
+		node["name"] = as<IdentifierToken>(id_token)->value;
+		node["params"] = params;
+		node["body"] = function_body;
+
 		return node;
 	}
 

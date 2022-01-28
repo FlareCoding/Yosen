@@ -6,7 +6,6 @@ set(
 
     ${cwd}/YosenInterpreter.h
     ${cwd}/YosenCompiler.h
-    ${cwd}/StackFrame.h
     ${cwd}/opcodes.h
 
     PARENT_SCOPE
@@ -17,7 +16,6 @@ set(
 
     ${cwd}/YosenInterpreter.cpp
     ${cwd}/YosenCompiler.cpp
-    ${cwd}/StackFrame.cpp
 
     PARENT_SCOPE
 )

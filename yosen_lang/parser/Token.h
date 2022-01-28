@@ -13,7 +13,8 @@ namespace yosen::parser
 		LiteralValue,
 		Operator,
 		Keyword,
-		Symbol
+		Symbol,
+		EOFToken
 	};
 
 	class Token
@@ -25,6 +26,12 @@ namespace yosen::parser
 		virtual std::string to_string();
 
 		static std::string token_type_to_string(TokenType type);
+	};
+
+	class EOFToken : public Token
+	{
+	public:
+		EOFToken() { type = TokenType::EOFToken; }
 	};
 
 	template <typename T>

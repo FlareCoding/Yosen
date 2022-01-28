@@ -66,4 +66,9 @@ namespace yosen
 
         return -1;
     }
+    
+    StackFramePtr allocate_stack_frame()
+    {
+        return std::make_shared<StackFrame>();
+    }
 }

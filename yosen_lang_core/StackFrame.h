@@ -37,24 +37,28 @@ namespace yosen
 		std::vector<std::string> imported_library_names;
 
 		// Creates the needed entries for the variable
-		void add_variable(const std::string& name, YosenObject* obj = nullptr);
+		YOSENAPI void add_variable(const std::string& name, YosenObject* obj = nullptr);
 
 		// Returns whether a variable exists on the stack frame
-		bool has_variable(const std::string& name) const;
+		YOSENAPI bool has_variable(const std::string& name) const;
 
 		// Creates a new function name entry
-		void add_function_name(const std::string& name);
+		YOSENAPI void add_function_name(const std::string& name);
 
 		// Returns the index of the function given its name,
 		// returns -1 if the function doesn't exist.
-		size_t get_function_index(const std::string& name);
+		YOSENAPI size_t get_function_index(const std::string& name);
 
 		// Returns the index of the class name,
 		// returns -1 if the name doesn't exist.
-		size_t get_class_name_index(const std::string& name);
+		YOSENAPI size_t get_class_name_index(const std::string& name);
 
 		// Returns the index of the imported library name,
 		// returns -1 if the name doesn't exist.
-		size_t get_imported_lib_name_index(const std::string& name);
+		YOSENAPI size_t get_imported_lib_name_index(const std::string& name);
 	};
+
+	using StackFramePtr = std::shared_ptr<StackFrame>;
+
+	YOSENAPI StackFramePtr allocate_stack_frame();
 }

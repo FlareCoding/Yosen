@@ -1,10 +1,17 @@
 #include "TokenPool.h"
+#include <YosenEnvironment.h>
 
 namespace yosen::parser
 {
 	TokenRef<Token> TokenPool::next(TokenRef<Token> token)
 	{
-		if (token == nullptr && tokens.size())
+		if (!tokens.size())
+		{
+			YosenEnvironment::get().throw_exception(ParserException("Empty source provided"));
+			return nullptr;
+		}
+
+		if (token == nullptr)
 			return tokens[0];
 
 		auto idx = index_of(token);
