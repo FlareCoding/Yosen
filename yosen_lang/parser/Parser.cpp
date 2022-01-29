@@ -69,7 +69,10 @@ namespace yosen::parser
 
 		if (as<SymbolToken>(current_token)->symbol != symbol)
 		{
-			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected symbol found";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno)
+							+ " - unexpected symbol found, expected a \""
+							+ SymbolToken::symbol_to_string(symbol) + "\"";
+
 			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
@@ -128,7 +131,7 @@ namespace yosen::parser
 	{
 		if (current_token->type != type)
 		{
-			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected symbol: " + Token::token_type_to_string(type);
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected token: " + Token::token_type_to_string(type);
 			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
@@ -218,9 +221,11 @@ namespace yosen::parser
 		else if (current_token->type == TokenType::Identifier)
 			node = parse_identifier();
 
-		// Check for semicolon presence
-		if (is_symbol(current_token, Symbol::Semicolon))
-			expect(Symbol::Semicolon);
+		// Expecting a semicolon after a statement
+		expect(Symbol::Semicolon);
+
+		/*if (is_symbol(current_token, Symbol::Semicolon))
+			expect(Symbol::Semicolon);*/
 
 		return node;
 	}
@@ -441,7 +446,7 @@ namespace yosen::parser
 			if (is_symbol(current_token, Symbol::ParenthesisClose))
 				break;
 
-			expect(TokenType::Symbol);
+			expect(Symbol::Comma);
 		}
 		expect(Symbol::ParenthesisClose);
 
@@ -527,8 +532,6 @@ namespace yosen::parser
 		node["type"] = ASTNodeType_VariableDeclaration;
 		node["name"] = as<IdentifierToken>(name_token)->value;
 		node["value"] = parse_expression({ Symbol::Semicolon });
-
-		expect(Symbol::Semicolon);
 
 		return node;
 	}

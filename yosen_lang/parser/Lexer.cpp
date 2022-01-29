@@ -126,8 +126,6 @@ namespace yosen::parser
 		// Add an EOF token
 		token_pool->add(make_token<EOFToken>());
 
-		__debug_print_tokens();
-
 		return token_pool;
 	}
 
