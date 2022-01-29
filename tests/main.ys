@@ -1,25 +1,22 @@
-// First ever Yosen test
-
-import yosen_std_math;
+// Contains io:: functions
+import stdio;
 
 func reverse(str) {
-	println(str.reverse());
+	io::println(str.reverse());
 }
 
 func main(args)
 {
-	println(args.length());
-	println(args);
-	println(args.get(0));
+	io::println(args.length());
+	io::println(args);
+	io::println(args.get(0));
 	
-	var age = 19;
-	println(age);
+	var age = io::input("Enter your age: ");
+	io::print("You are ");
+	io::print(age);
+	io::println(" years old!");
 
 	var str = "Hello World";
-	println(str);
+	io::println(str);
 	reverse(str);
-
-	var foo = new std::TestStdClass();
-	println(foo);
-	foo.test_fn();
 }

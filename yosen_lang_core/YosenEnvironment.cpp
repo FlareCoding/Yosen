@@ -19,9 +19,6 @@ namespace yosen
 		YosenObject_Null = allocate_object<YosenObject>();
 		YosenObject_Null->m_string_repr = "null";
 
-		// Initialize standard library
-		//s_env_instance->initialize_standard_library();
-
 #if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
 		utils::log_colored(
 			utils::ConsoleColor::Green,

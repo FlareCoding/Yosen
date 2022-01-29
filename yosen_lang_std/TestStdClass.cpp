@@ -1,4 +1,4 @@
-#include "YosenStandardLibrary.h"
+#include "TestStdClass.h"
 
 YosenObject* test_std_class_builder(YosenObject* args)
 {
