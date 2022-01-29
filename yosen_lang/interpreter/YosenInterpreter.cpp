@@ -134,18 +134,21 @@ namespace yosen
         }
 
         // Get the entry point function stack frame
-        auto& [stack_frame, bytecode] = m_env->get_static_runtime_function("main");
+        auto& [stack_frame, bytecode] = m_env->get_static_runtime_function(entry_point_name);
 
         // Prepare the args parameter value
-        std::vector<YosenObject*> args;
+        if (stack_frame->params.size())
+        {
+            std::vector<YosenObject*> args;
 
-        auto exec_path = allocate_object<YosenString>(utils::get_current_executable_path());
-        args.push_back(exec_path);
+            auto exec_path = allocate_object<YosenString>(utils::get_current_executable_path());
+            args.push_back(exec_path);
 
-        for (auto& arg : cmd_arguments)
-            args.push_back(allocate_object<YosenString>(arg));
+            for (auto& arg : cmd_arguments)
+                args.push_back(allocate_object<YosenString>(arg));
 
-        stack_frame->params[0].second = allocate_object<YosenList>(args);
+            stack_frame->params[0].second = allocate_object<YosenList>(args);
+        }
 
         // Execute the entry point function
         execute_bytecode(stack_frame, bytecode);

@@ -12,8 +12,6 @@ namespace yosen
 	struct ProgramSource
 	{
 		std::vector<ys_runtime_function_t> runtime_functions;
-
-		ys_runtime_function_t get_entry_point_function(const std::string& name);
 	};
 
 	class YosenCompiler
@@ -59,5 +57,14 @@ namespace yosen
 
 		// Compiles a class instantiation logic from an AST node
 		void compile_class_instantiation(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
+
+	private:
+		// In case an exception occurs, the variables
+		// on the stack frame should get freed.
+		void destroy_stack_frame(StackFramePtr stack_frame);
+		
+		// Frees all compiled resources on allocated
+		// stack frames in an event if exception occurs.
+		void __ys_free_compiled_resources(StackFramePtr faulty_stack_frame);
 	};
 }

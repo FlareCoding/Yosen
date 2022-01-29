@@ -3,6 +3,23 @@
 
 namespace yosen
 {
+    static ProgramSource* s_ProgramSourcePtr = nullptr;
+
+    void YosenCompiler::__ys_free_compiled_resources(StackFramePtr faulty_stack_frame)
+    {
+        // Free the compiled resources on all compiled stack frames
+        if (s_ProgramSourcePtr)
+        {
+            for (auto& [stack_frame, bytecode] : s_ProgramSourcePtr->runtime_functions)
+                destroy_stack_frame(stack_frame);
+
+            s_ProgramSourcePtr->runtime_functions.clear();
+        }
+
+        // Destroy the faulty stack frame that hasn't compiled yet
+        destroy_stack_frame(faulty_stack_frame);
+    }
+
     static std::string get_anonymous_stack_frame_name()
     {
         static uint64_t idx = 0;
@@ -148,6 +165,9 @@ namespace yosen
         // Make sure the variable exists
         if (stack_frame->var_keys.find(identifier_value) == stack_frame->var_keys.end())
         {
+            // Free all compiled resources
+            __ys_free_compiled_resources(stack_frame);
+
             auto ex_reason = "Undefined variable \"" + identifier_value + "\" used";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return 0;
@@ -284,6 +304,9 @@ namespace yosen
             // Make sure the variable exists
             if (stack_frame->var_keys.find(caller_name) == stack_frame->var_keys.end())
             {
+                // Free all compiled resources
+                __ys_free_compiled_resources(stack_frame);
+
                 auto ex_reason = "Undefined variable \"" + caller_name + "\" used";
                 YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
                 return;
@@ -318,6 +341,9 @@ namespace yosen
 
         StackFramePtr stack_frame = allocate_stack_frame();
         bytecode_t bytecode;
+
+        // Set the global program source object pointer
+        s_ProgramSourcePtr = &program_source;
 
         // Registering the function name
         stack_frame->name = node["name"].string_value();
@@ -394,6 +420,9 @@ namespace yosen
         // Check if the variable exists
         if (stack_frame->var_keys.find(variable_name) != stack_frame->var_keys.end())
         {
+            // Free all compiled resources
+            __ys_free_compiled_resources(stack_frame);
+
             auto ex_reason = "Variable \"" + variable_name + "\" already exists";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return;
@@ -427,6 +456,9 @@ namespace yosen
         // Make sure the variable exists
         if (stack_frame->var_keys.find(variable_name) == stack_frame->var_keys.end())
         {
+            // Free all compiled resources
+            __ys_free_compiled_resources(stack_frame);
+
             auto ex_reason = "Undefined variable \"" + variable_name + "\" used";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return;
@@ -478,6 +510,22 @@ namespace yosen
         bytecode.push_back(static_cast<opcodes::opcode_t>(class_name_index));
     }
 
+    void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
+    {
+        // Deallocate constants
+        for (auto& [key, obj] : stack_frame->constants)
+            if (obj) free_object(obj);
+
+        stack_frame->constants.clear();
+
+        // Deallocate variables
+        for (auto& [key, obj] : stack_frame->vars)
+            if (obj) free_object(obj);
+
+        stack_frame->vars.clear();
+        stack_frame->params.clear();
+    }
+
     ProgramSource YosenCompiler::compile_source(std::string& source)
     {
         ProgramSource program_source;
@@ -518,19 +566,5 @@ namespace yosen
 
         printf("\n");
         return bytecode;
-    }
-    
-    ys_runtime_function_t ProgramSource::get_entry_point_function(const std::string& name)
-    {
-        for (auto& fn : runtime_functions)
-            if (fn.first->name._Equal(name))
-                return fn;
-
-        YosenEnvironment::get().throw_exception(
-            RuntimeException("Could not find entry point \"" + name + "\"")
-        );
-
-        static ys_runtime_function_t s_dummy;
-        return s_dummy;
     }
 }
