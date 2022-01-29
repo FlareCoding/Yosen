@@ -486,7 +486,6 @@ namespace yosen
         auto ast = parser.parse_source(source);
         for (auto node : ast.array_items())
         {
-            printf("ASTNode:\n%s\n\n", node.dump().c_str());
             if (node["type"].string_value()._Equal(parser::ASTNodeType_Import))
             {
                 // Directly import the library

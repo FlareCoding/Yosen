@@ -60,18 +60,22 @@ namespace yosen
         }
 
         // If the return register is not empty, deallocate the existing object
-        if (registers[RegisterType::ReturnRegister] != nullptr)
+        if (m_registers[RegisterType::ReturnRegister] != nullptr)
         {
-            free_object(registers[RegisterType::ReturnRegister]);
-            registers[RegisterType::ReturnRegister] = nullptr;
+            free_object(m_registers[RegisterType::ReturnRegister]);
+            m_registers[RegisterType::ReturnRegister] = nullptr;
         }
 
         // If the allocated object register is not empty, deallocate the existing object
-        if (registers[RegisterType::AllocatedObjectRegister] != nullptr)
+        if (m_registers[RegisterType::AllocatedObjectRegister] != nullptr)
         {
-            free_object(registers[RegisterType::AllocatedObjectRegister]);
-            registers[RegisterType::AllocatedObjectRegister] = nullptr;
+            free_object(m_registers[RegisterType::AllocatedObjectRegister]);
+            m_registers[RegisterType::AllocatedObjectRegister] = nullptr;
         }
+
+        // Destroy the entry point argument object if it was used
+        if (m_entry_point_args)
+            free_object(m_entry_point_args);
 
 		// Shutdown the environment
 		m_env->shutdown();
@@ -103,13 +107,13 @@ namespace yosen
         exit(1);
     }
 
-    void YosenInterpreter::run_source(std::string& source)
+    void YosenInterpreter::run_source(std::string& source, const std::vector<std::string>& cmd_arguments)
     {
         // Compile the source code
         auto& program_source = m_compiler.compile_source(source);
 
         // Create an empty parameter stack to be used by the function for future functions
-        parameter_stacks.push({});
+        m_parameter_stacks.push({});
 
         // Register all the functions
         for (auto& fn : program_source.runtime_functions)
@@ -131,6 +135,17 @@ namespace yosen
 
         // Get the entry point function stack frame
         auto& [stack_frame, bytecode] = m_env->get_static_runtime_function("main");
+
+        // Prepare the args parameter value
+        std::vector<YosenObject*> args;
+
+        auto exec_path = allocate_object<YosenString>(utils::get_current_executable_path());
+        args.push_back(exec_path);
+
+        for (auto& arg : cmd_arguments)
+            args.push_back(allocate_object<YosenString>(arg));
+
+        stack_frame->params[0].second = allocate_object<YosenList>(args);
 
         // Execute the entry point function
         execute_bytecode(stack_frame, bytecode);
@@ -167,7 +182,7 @@ namespace yosen
         m_interactive_mode = true;
 
         // Create an empty parameter stack to be used by the global function
-        parameter_stacks.push({});
+        m_parameter_stacks.push({});
 
         StackFramePtr global_stack_frame = allocate_stack_frame();
         global_stack_frame->name = "__ys_global_stack_frame";
@@ -223,7 +238,7 @@ namespace yosen
 		}
 
 		// Deallocate pushed variables
-		for (auto& obj : parameter_stacks.top())
+		for (auto& obj : m_parameter_stacks.top())
 			if (obj) free_object(obj);
 	}
 	
@@ -314,7 +329,7 @@ namespace yosen
             auto operand = ops[1];
             opcount = 2;
 
-            LLOref = &registers[static_cast<RegisterType>(operand)];
+            LLOref = &m_registers[static_cast<RegisterType>(operand)];
             break;
         }
         case opcodes::REG_STORE:
@@ -324,10 +339,10 @@ namespace yosen
             opcount = 2;
 
             // Retrieve the original object
-            auto original_object = registers[static_cast<RegisterType>(operand)];
+            auto original_object = m_registers[static_cast<RegisterType>(operand)];
 
             // Copy the object into the correct register
-            registers[static_cast<RegisterType>(operand)] = (*LLOref)->clone();
+            m_registers[static_cast<RegisterType>(operand)] = (*LLOref)->clone();
 
             // Free the original object
             if (original_object)
@@ -338,7 +353,7 @@ namespace yosen
         case opcodes::PUSH:
         {
             // Copy the last loaded object onto the parameter stack
-            parameter_stacks.top().push_back((*LLOref)->clone());
+            m_parameter_stacks.top().push_back((*LLOref)->clone());
             break;
         }
         case opcodes::IMPORT_LIB:
@@ -368,7 +383,7 @@ namespace yosen
             }
 
             // Process parameters
-            auto& parameter_stack = parameter_stacks.top();
+            auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
@@ -382,10 +397,10 @@ namespace yosen
             parameter_stack.clear();
 
             // Retrieve the original object
-            auto original_object = registers[RegisterType::AllocatedObjectRegister];
+            auto original_object = m_registers[RegisterType::AllocatedObjectRegister];
 
             // Copy the object into the register
-            registers[RegisterType::AllocatedObjectRegister] = instance;
+            m_registers[RegisterType::AllocatedObjectRegister] = instance;
 
             // Free the original object
             if (original_object)
@@ -401,7 +416,7 @@ namespace yosen
             opcount = 3;
 
             // Process parameters
-            auto& parameter_stack = parameter_stacks.top();
+            auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
@@ -418,11 +433,11 @@ namespace yosen
                     return_val = caller_object->call_member_native_function(fn_name, param_pack);
 
                     // If the return register is not empty, deallocate the existing object
-                    if (registers[RegisterType::ReturnRegister] != nullptr)
-                        free_object(registers[RegisterType::ReturnRegister]);
+                    if (m_registers[RegisterType::ReturnRegister] != nullptr)
+                        free_object(m_registers[RegisterType::ReturnRegister]);
 
                     // Move the return value into the return register
-                    registers[RegisterType::ReturnRegister] = return_val;
+                    m_registers[RegisterType::ReturnRegister] = return_val;
                 }
                 else
                 {
@@ -456,7 +471,7 @@ namespace yosen
                     }
 
                     // Create an empty parameter stack to be used by the function for future functions
-                    parameter_stacks.push({});
+                    m_parameter_stacks.push({});
 
                     // Run the user function (return register will automatically be updated
                     execute_bytecode(fn_stack_frame, fn_bytecode);
@@ -465,7 +480,7 @@ namespace yosen
                     deallocate_frame(fn_stack_frame);
 
                     // Pop the functions's parameter stack
-                    parameter_stacks.pop();
+                    m_parameter_stacks.pop();
                 }
 
                 // Check for a native function
@@ -475,11 +490,11 @@ namespace yosen
                     return_val = fn(param_pack);
 
                     // If the return register is not empty, deallocate the existing object
-                    if (registers[RegisterType::ReturnRegister] != nullptr)
-                        free_object(registers[RegisterType::ReturnRegister]);
+                    if (m_registers[RegisterType::ReturnRegister] != nullptr)
+                        free_object(m_registers[RegisterType::ReturnRegister]);
 
                     // Move the return value into the return register
-                    registers[RegisterType::ReturnRegister] = return_val;
+                    m_registers[RegisterType::ReturnRegister] = return_val;
                 }
                 else
                 {

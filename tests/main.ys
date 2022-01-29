@@ -6,10 +6,13 @@ func reverse(str) {
 	println(str.reverse());
 }
 
-func main()
+func main(args)
 {
+	println(args.length());
+	println(args);
+	println(args.get(0));
+	
 	var age = 19;
-
 	println(age);
 
 	var str = "Hello World";

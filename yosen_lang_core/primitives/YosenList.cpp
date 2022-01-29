@@ -36,7 +36,7 @@ namespace yosen
 		{
 			result += items[i]->to_string();
 
-			if (i <= items.size() - 2)
+			if (i <= items.size() - 2 && items.size() > 1)
 				result += ", ";
 		}
 
@@ -51,6 +51,11 @@ namespace yosen
 
 	void YosenList::register_member_native_functions()
 	{
+		add_member_native_function("get",		MEMBER_FUNCTION(get));
+		add_member_native_function("add",		MEMBER_FUNCTION(add));
+		add_member_native_function("remove",	MEMBER_FUNCTION(remove));
+		add_member_native_function("clear",		MEMBER_FUNCTION(clear));
+		add_member_native_function("length",	MEMBER_FUNCTION(length));
 	}
 	
 	YosenObject* YosenList::get(YosenObject* self, YosenObject* args)

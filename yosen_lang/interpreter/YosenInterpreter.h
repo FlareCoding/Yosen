@@ -22,7 +22,7 @@ namespace yosen
 
 		// Compiles and runs a complete string of source code.
 		// ** Expects an entry point defined as "main" by default.
-		void run_source(std::string& source);
+		void run_source(std::string& source, const std::vector<std::string>& cmd_arguments);
 
 		// Creates an interactive Yosen console that accepts
 		// a continuous input of source code commands.
@@ -50,10 +50,14 @@ namespace yosen
 		// the current command due to an exception occuring.
 		bool m_interactive_shell_exception_occured = false;
 
+		// Command line arguments for a full
+		// program's entry point function.
+		YosenObject* m_entry_point_args = nullptr;
+
 		// Reference to the Last Loaded Object
 		YosenObject** LLOref = nullptr;
 
-		std::map<RegisterType, YosenObject*> registers = {
+		std::map<RegisterType, YosenObject*> m_registers = {
 			// Register to hold objects that were dynamically allocated
 			{ RegisterType::AllocatedObjectRegister, nullptr },
 
@@ -62,7 +66,7 @@ namespace yosen
 		};
 
 		// Each stack frame has its own parameter stack to operate with to push variables onto
-		std::stack<std::vector<YosenObject*>> parameter_stacks;
+		std::stack<std::vector<YosenObject*>> m_parameter_stacks;
 
 		// All allocated stack frames
 		std::vector<StackFramePtr> m_allocated_stack_frames;

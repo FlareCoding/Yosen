@@ -44,6 +44,21 @@ namespace yosen::utils
 #endif
 	}
 
+	std::string get_current_executable_path()
+	{
+#if defined(PLATFORM_POSIX) || defined(__linux__)
+		std::string sp;
+		std::ifstream("/proc/self/comm") >> sp;
+		return sp;
+#elif defined(_WIN32)
+		char buf[MAX_PATH];
+		GetModuleFileNameA(nullptr, buf, MAX_PATH);
+		return buf;
+#else
+		static_assert(false, "Platform not supported");
+#endif
+	}
+
 	static std::string color_to_linux_escape_code(ConsoleColor color)
 	{
 		std::string code = "0";
