@@ -126,6 +126,8 @@ namespace yosen::parser
 		// Add an EOF token
 		token_pool->add(make_token<EOFToken>());
 
+		__debug_print_tokens();
+
 		return token_pool;
 	}
 
@@ -162,6 +164,10 @@ namespace yosen::parser
 				std::stringstream stream_segment(segment);
 				while (std::getline(stream_segment, segment, ' '))
 				{
+					// If there is a comment in the middle of the line
+					if (segment.find("//") != std::string::npos)
+						break;
+
 					if (!segment.empty())
 					{
 						// Removing the leading and trailing whitespace

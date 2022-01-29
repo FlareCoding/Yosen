@@ -4,6 +4,9 @@ namespace yosen::parser
 {
 	std::string Token::to_string()
 	{
+		if (type == TokenType::EOFToken)
+			return "[TokenType: EOF]";
+
 		return "[TokenType: Empty, Value: '']";
 	}
 	
