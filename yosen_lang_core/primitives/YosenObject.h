@@ -27,7 +27,9 @@ namespace yosen
 		BoolOpEqu,
 		BoolOpNotEqu,
 		BoolOpGreaterThan,
-		BoolOpLessThan
+		BoolOpLessThan,
+		BoolOpOr,
+		BoolOpAnd,
 	};
 
 	class YosenObject

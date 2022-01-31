@@ -29,6 +29,8 @@ namespace yosen
 		case RuntimeOperator::BoolOpNotEqu: return "!=";
 		case RuntimeOperator::BoolOpGreaterThan: return ">";
 		case RuntimeOperator::BoolOpLessThan: return "<";
+		case RuntimeOperator::BoolOpOr: return "||";
+		case RuntimeOperator::BoolOpAnd: return "&&";
 		default: return "Unknown";
 		}
 	}

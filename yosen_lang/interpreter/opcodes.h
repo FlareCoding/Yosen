@@ -77,6 +77,36 @@ namespace yosen
 		// No operands
 		constexpr opcode_t MOD = 0x34;
 
+		// Returns a boolean value of the == operation on the last two loaded
+		// objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t EQU = 0x35;
+
+		// Returns a boolean value of the != operation on the last two loaded
+		// objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t NOTEQU = 0x36;
+
+		// Returns a boolean value of the > operation on the last two loaded
+		// objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t GREATER = 0x37;
+
+		// Returns a boolean value of the < operation on the last two loaded
+		// objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t LESS = 0x38;
+
+		// Returns a boolean value of the || operation on the last two loaded
+		// objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t OR = 0x39;
+
+		// Returns a boolean value of the && operation on the last two loaded
+		// objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t AND = 0x40;
+
 #define RETURN REG_STORE, 0x02
 	}
 }

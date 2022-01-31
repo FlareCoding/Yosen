@@ -394,6 +394,36 @@ namespace yosen
             execute_runtime_operator_instruction(RuntimeOperator::BinOpMod);
             break;
         }
+        case opcodes::EQU:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpEqu);
+            break;
+        }
+        case opcodes::NOTEQU:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpNotEqu);
+            break;
+        }
+        case opcodes::GREATER:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpGreaterThan);
+            break;
+        }
+        case opcodes::LESS:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpLessThan);
+            break;
+        }
+        case opcodes::OR:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpOr);
+            break;
+        }
+        case opcodes::AND:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpAnd);
+            break;
+        }
         case opcodes::IMPORT_LIB:
         {
             // Operand is the key of the register into which the loaded object has to be copied

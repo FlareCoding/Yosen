@@ -28,9 +28,9 @@ namespace yosen::parser
 		case Operator::GreaterThanOrEqual:
 		case Operator::Equequ:
 		case Operator::Notequ:
-		case Operator::Not:
-		case Operator::And:
 		case Operator::Or:
+		case Operator::And:
+		case Operator::Not:
 			return true;
 		default:
 			return false;
