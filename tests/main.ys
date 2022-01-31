@@ -28,4 +28,7 @@ func main(args)
 	io::println("Number is " + 7);
 	io::println(15 / 3 + 3);
 	io::println("The remainder of 12 % 9 is: " + (12 % 9));
+
+	var boolVar = true;
+	io::println(boolVar);
 }

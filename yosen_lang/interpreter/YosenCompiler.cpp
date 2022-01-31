@@ -34,6 +34,11 @@ namespace yosen
 
         switch (type)
         {
+        case parser::LiteralType::Boolean:
+        {
+            bool bval = (value._Equal("true"));
+            return allocate_object<YosenBoolean>(bval);
+        }
         case parser::LiteralType::String:
         {
             return allocate_object<YosenString>(value);
