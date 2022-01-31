@@ -5,6 +5,7 @@ set(
     PRIMITIVES_HEADERS
 
     ${cwd}/YosenObject.h
+    ${cwd}/YosenBoolean.h
     ${cwd}/YosenInteger.h
     ${cwd}/YosenString.h
     ${cwd}/YosenTuple.h
@@ -18,6 +19,7 @@ set(
     PRIMITIVES_SOURCES
 
     ${cwd}/YosenObject.cpp
+    ${cwd}/YosenBoolean.cpp
     ${cwd}/YosenInteger.cpp
     ${cwd}/YosenString.cpp
     ${cwd}/YosenTuple.cpp

@@ -134,18 +134,21 @@ namespace yosen
         }
 
         // Get the entry point function stack frame
-        auto& [stack_frame, bytecode] = m_env->get_static_runtime_function("main");
+        auto& [stack_frame, bytecode] = m_env->get_static_runtime_function(entry_point_name);
 
         // Prepare the args parameter value
-        std::vector<YosenObject*> args;
+        if (stack_frame->params.size())
+        {
+            std::vector<YosenObject*> args;
 
-        auto exec_path = allocate_object<YosenString>(utils::get_current_executable_path());
-        args.push_back(exec_path);
+            auto exec_path = allocate_object<YosenString>(utils::get_current_executable_path());
+            args.push_back(exec_path);
 
-        for (auto& arg : cmd_arguments)
-            args.push_back(allocate_object<YosenString>(arg));
+            for (auto& arg : cmd_arguments)
+                args.push_back(allocate_object<YosenString>(arg));
 
-        stack_frame->params[0].second = allocate_object<YosenList>(args);
+            stack_frame->params[0].second = allocate_object<YosenList>(args);
+        }
 
         // Execute the entry point function
         execute_bytecode(stack_frame, bytecode);
@@ -174,7 +177,7 @@ namespace yosen
 
         return result;
     }
-	
+
 	void YosenInterpreter::run_interactive_shell()
 	{
         // Tell the interpreter that it is
@@ -356,6 +359,71 @@ namespace yosen
             m_parameter_stacks.top().push_back((*LLOref)->clone());
             break;
         }
+        case opcodes::POP:
+        {
+            // Free the object before popping
+            auto& obj = m_parameter_stacks.top().back();
+            free_object(obj);
+
+            // Pop the last object from the parameter stack
+            m_parameter_stacks.top().pop_back();
+            break;
+        }
+        case opcodes::ADD:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpAdd);
+            break;
+        }
+        case opcodes::SUB:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpSub);
+            break;
+        }
+        case opcodes::MUL:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpMul);
+            break;
+        }
+        case opcodes::DIV:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpDiv);
+            break;
+        }
+        case opcodes::MOD:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpMod);
+            break;
+        }
+        case opcodes::EQU:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpEqu);
+            break;
+        }
+        case opcodes::NOTEQU:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpNotEqu);
+            break;
+        }
+        case opcodes::GREATER:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpGreaterThan);
+            break;
+        }
+        case opcodes::LESS:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpLessThan);
+            break;
+        }
+        case opcodes::OR:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpOr);
+            break;
+        }
+        case opcodes::AND:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BoolOpAnd);
+            break;
+        }
         case opcodes::IMPORT_LIB:
         {
             // Operand is the key of the register into which the loaded object has to be copied
@@ -462,7 +530,18 @@ namespace yosen
                     {
                         if (fn_stack_frame->params.size() != param_count)
                         {
-                            throw "Incorrect number of parameters passed";
+                            // Deallocate the parameter pack object
+                            free_object(param_pack);
+
+                            // Clear the parameter stack
+                            parameter_stack.clear();
+
+                            auto ex_reason =    "function \"" + fn_name + "\" expected " +
+                                                std::to_string(fn_stack_frame->params.size()) + 
+                                                " arguments, received " + std::to_string(param_count) + 
+                                                " arguments";
+
+                            m_env->throw_exception(RuntimeException(ex_reason));
                             return 0;
                         }
 
@@ -523,4 +602,28 @@ namespace yosen
 
         return opcount;
 	}
+
+    void YosenInterpreter::execute_runtime_operator_instruction(RuntimeOperator op)
+    {
+        auto& parameter_stack = m_parameter_stacks.top();
+        auto& lhs = parameter_stack.at(parameter_stack.size() - 2);
+        auto& rhs = parameter_stack.at(parameter_stack.size() - 1);
+
+        // Operation result
+        auto result = lhs->call_runtime_operator_function(op, rhs);
+
+        // Retrieve the original object from the allocated object register
+        auto original_object = m_registers[RegisterType::AllocatedObjectRegister];
+
+        // Copy the object into the register
+        m_registers[RegisterType::AllocatedObjectRegister] = result;
+
+        // Load the result into the LLOref as well
+        LLOref = &m_registers[RegisterType::AllocatedObjectRegister];
+
+        // Free the original object
+        if (original_object)
+            free_object(original_object);
+    }
+
 }

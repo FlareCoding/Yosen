@@ -46,7 +46,7 @@ namespace yosen
 
 	const char* YosenList::runtime_name() const
 	{
-		return "Tuple";
+		return "List";
 	}
 
 	void YosenList::register_member_native_functions()

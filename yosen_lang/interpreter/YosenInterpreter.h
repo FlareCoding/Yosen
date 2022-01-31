@@ -79,6 +79,9 @@ namespace yosen
 		// Used within the interactive shell to parse function declarations
 		std::string read_block_source(const std::string& header, const std::string& tab_space);
 
+		// Helper function to interpreter runtime binary and boolean operations
+		void execute_runtime_operator_instruction(RuntimeOperator op);
+
 	private:
 		// Main exception handler
 		void main_exception_handler(const YosenException& ex);

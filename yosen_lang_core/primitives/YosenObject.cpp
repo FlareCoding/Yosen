@@ -8,10 +8,32 @@
 #include "YosenInteger.h"
 #include "YosenString.h"
 
+// Runtime environment
+#include "YosenEnvironment.h"
+
 namespace yosen
 {
 	YosenObject* YosenObject_Null = nullptr;
 	static uint64_t s_total_allocated_objects = 0;
+
+	static std::string runtime_op_to_string(RuntimeOperator op)
+	{
+		switch (op)
+		{
+		case RuntimeOperator::BinOpAdd: return "+";
+		case RuntimeOperator::BinOpSub: return "-";
+		case RuntimeOperator::BinOpMul: return "*";
+		case RuntimeOperator::BinOpDiv: return "/";
+		case RuntimeOperator::BinOpMod: return "%";
+		case RuntimeOperator::BoolOpEqu: return "==";
+		case RuntimeOperator::BoolOpNotEqu: return "!=";
+		case RuntimeOperator::BoolOpGreaterThan: return ">";
+		case RuntimeOperator::BoolOpLessThan: return "<";
+		case RuntimeOperator::BoolOpOr: return "||";
+		case RuntimeOperator::BoolOpAnd: return "&&";
+		default: return "Unknown";
+		}
+	}
 
 	YosenObject::YosenObject()
 	{
@@ -61,6 +83,24 @@ namespace yosen
 
 		auto fn = m_member_native_functions[name];
 		return fn(this, args);
+	}
+
+	void YosenObject::add_runtime_operator_function(RuntimeOperator op, ys_runtime_operator_fn_t fn)
+	{
+		if (fn) m_runtime_operator_functions[op] = fn;
+	}
+
+	YosenObject* YosenObject::call_runtime_operator_function(RuntimeOperator op, YosenObject* rhs)
+	{
+		auto& fn = m_runtime_operator_functions[op];
+
+		if (!fn)
+		{
+			auto ex_reason = "operator \"" + runtime_op_to_string(op) + "\" is not overloaded for type " + runtime_name();
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+		}
+
+		return fn(this, rhs);
 	}
 
 	void __yosen_register_allocated_object(void* obj)

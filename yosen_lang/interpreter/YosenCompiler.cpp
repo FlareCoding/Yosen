@@ -3,6 +3,23 @@
 
 namespace yosen
 {
+    static ProgramSource* s_ProgramSourcePtr = nullptr;
+
+    void YosenCompiler::__ys_free_compiled_resources(StackFramePtr faulty_stack_frame)
+    {
+        // Free the compiled resources on all compiled stack frames
+        if (s_ProgramSourcePtr)
+        {
+            for (auto& [stack_frame, bytecode] : s_ProgramSourcePtr->runtime_functions)
+                destroy_stack_frame(stack_frame);
+
+            s_ProgramSourcePtr->runtime_functions.clear();
+        }
+
+        // Destroy the faulty stack frame that hasn't compiled yet
+        destroy_stack_frame(faulty_stack_frame);
+    }
+
     static std::string get_anonymous_stack_frame_name()
     {
         static uint64_t idx = 0;
@@ -17,6 +34,11 @@ namespace yosen
 
         switch (type)
         {
+        case parser::LiteralType::Boolean:
+        {
+            bool bval = (value._Equal("true"));
+            return allocate_object<YosenBoolean>(bval);
+        }
         case parser::LiteralType::String:
         {
             return allocate_object<YosenString>(value);
@@ -27,6 +49,29 @@ namespace yosen
         }
         default: throw "Unknown type";
         }
+    }
+
+    static opcodes::opcode_t opcode_from_binary_operator(const std::string_view& op)
+    {
+        if (op._Equal("+")) return opcodes::ADD;
+        if (op._Equal("-")) return opcodes::SUB;
+        if (op._Equal("*")) return opcodes::MUL;
+        if (op._Equal("/")) return opcodes::DIV;
+        if (op._Equal("%")) return opcodes::MOD;
+
+        return 0;
+    }
+
+    static opcodes::opcode_t opcode_from_boolean_operator(const std::string_view& op)
+    {
+        if (op._Equal("==")) return opcodes::EQU;
+        if (op._Equal("!=")) return opcodes::NOTEQU;
+        if (op._Equal(">")) return opcodes::GREATER;
+        if (op._Equal("<")) return opcodes::LESS;
+        if (op._Equal("||")) return opcodes::OR;
+        if (op._Equal("&&")) return opcodes::AND;
+
+        return 0;
     }
 
     void YosenCompiler::debug_print_bytecode(bytecode_t& bytecode)
@@ -76,6 +121,66 @@ namespace yosen
             case opcodes::PUSH:
             {
                 printf("PUSH\n");
+                break;
+            }
+            case opcodes::POP:
+            {
+                printf("POP\n");
+                break;
+            }
+            case opcodes::ADD:
+            {
+                printf("ADD\n");
+                break;
+            }
+            case opcodes::SUB:
+            {
+                printf("SUB\n");
+                break;
+            }
+            case opcodes::MUL:
+            {
+                printf("MUL\n");
+                break;
+            }
+            case opcodes::DIV:
+            {
+                printf("DIV\n");
+                break;
+            }
+            case opcodes::MOD:
+            {
+                printf("MOD\n");
+                break;
+            }
+            case opcodes::EQU:
+            {
+                printf("EQU\n");
+                break;
+            }
+            case opcodes::NOTEQU:
+            {
+                printf("NOTEQU\n");
+                break;
+            }
+            case opcodes::GREATER:
+            {
+                printf("GREATER\n");
+                break;
+            }
+            case opcodes::LESS:
+            {
+                printf("LESS\n");
+                break;
+            }
+            case opcodes::OR:
+            {
+                printf("OR\n");
+                break;
+            }
+            case opcodes::AND:
+            {
+                printf("AND\n");
                 break;
             }
             case opcodes::CALL:
@@ -148,6 +253,9 @@ namespace yosen
         // Make sure the variable exists
         if (stack_frame->var_keys.find(identifier_value) == stack_frame->var_keys.end())
         {
+            // Free all compiled resources
+            __ys_free_compiled_resources(stack_frame);
+
             auto ex_reason = "Undefined variable \"" + identifier_value + "\" used";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return 0;
@@ -243,6 +351,62 @@ namespace yosen
             bytecode.push_back(opcodes::REG_LOAD);
             bytecode.push_back(static_cast<opcodes::opcode_t>(0x01));
         }
+        else if (value_node_type._Equal(parser::ASTNodeType_BinaryOperation))
+        {
+            //
+            // If the expression is a binary operation (+, -, *, or /)
+            //
+            // 
+            // First compile the left hand side and load it into LLOref object
+            auto lhs_node = node["lhs"];
+            compile_expression(&lhs_node, stack_frame, bytecode);
+
+            // Push the loaded object onto the parameter stack
+            bytecode.push_back(opcodes::PUSH);
+
+            // Next compile the right hand side and load it into LLOref object
+            auto rhs_node = node["rhs"];
+            compile_expression(&rhs_node, stack_frame, bytecode);
+
+            // Push the loaded object onto the parameter stack
+            bytecode.push_back(opcodes::PUSH);
+
+            // Call the appropriate binary operator
+            auto operator_instruction = opcode_from_binary_operator(node["operator"].string_value());
+            bytecode.push_back(operator_instruction);
+
+            // Pop the last two objects off the parameter stack
+            bytecode.push_back(opcodes::POP);
+            bytecode.push_back(opcodes::POP);
+        }
+        else if (value_node_type._Equal(parser::ASTNodeType_BooleanOperation))
+        {
+            //
+            // If the expression is a boolean operation (||, &&, ==, etc.)
+            //
+            // 
+            // First compile the left hand side and load it into LLOref object
+            auto lhs_node = node["lhs"];
+            compile_expression(&lhs_node, stack_frame, bytecode);
+
+            // Push the loaded object onto the parameter stack
+            bytecode.push_back(opcodes::PUSH);
+
+            // Next compile the right hand side and load it into LLOref object
+            auto rhs_node = node["rhs"];
+            compile_expression(&rhs_node, stack_frame, bytecode);
+
+            // Push the loaded object onto the parameter stack
+            bytecode.push_back(opcodes::PUSH);
+
+            // Call the appropriate binary operator
+            auto operator_instruction = opcode_from_boolean_operator(node["operator"].string_value());
+            bytecode.push_back(operator_instruction);
+
+            // Pop the last two objects off the parameter stack
+            bytecode.push_back(opcodes::POP);
+            bytecode.push_back(opcodes::POP);
+        }
     }
 
     void YosenCompiler::compile_function_call(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -284,6 +448,9 @@ namespace yosen
             // Make sure the variable exists
             if (stack_frame->var_keys.find(caller_name) == stack_frame->var_keys.end())
             {
+                // Free all compiled resources
+                __ys_free_compiled_resources(stack_frame);
+
                 auto ex_reason = "Undefined variable \"" + caller_name + "\" used";
                 YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
                 return;
@@ -318,6 +485,9 @@ namespace yosen
 
         StackFramePtr stack_frame = allocate_stack_frame();
         bytecode_t bytecode;
+
+        // Set the global program source object pointer
+        s_ProgramSourcePtr = &program_source;
 
         // Registering the function name
         stack_frame->name = node["name"].string_value();
@@ -375,6 +545,25 @@ namespace yosen
             bytecode.push_back(opcodes::REG_STORE);
             bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
         }
+        else
+        {
+            auto return_statement = node[parser::ASTNodeType_ReturnStatement];
+            if (return_statement["value"] == json11::Json::NUL)
+            {
+                // Load YosenObject_Null
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(0x00));
+            }
+            else
+            {
+                auto expression_node = return_statement["value"];
+                compile_expression(&expression_node, stack_frame, bytecode);
+            }
+
+            // Store the result in the return register
+            bytecode.push_back(opcodes::REG_STORE);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
+        }
 
         // Add the compiled function to the program source object
         program_source.runtime_functions.push_back({ stack_frame, bytecode });
@@ -394,6 +583,9 @@ namespace yosen
         // Check if the variable exists
         if (stack_frame->var_keys.find(variable_name) != stack_frame->var_keys.end())
         {
+            // Free all compiled resources
+            __ys_free_compiled_resources(stack_frame);
+
             auto ex_reason = "Variable \"" + variable_name + "\" already exists";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return;
@@ -427,6 +619,9 @@ namespace yosen
         // Make sure the variable exists
         if (stack_frame->var_keys.find(variable_name) == stack_frame->var_keys.end())
         {
+            // Free all compiled resources
+            __ys_free_compiled_resources(stack_frame);
+
             auto ex_reason = "Undefined variable \"" + variable_name + "\" used";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return;
@@ -478,6 +673,22 @@ namespace yosen
         bytecode.push_back(static_cast<opcodes::opcode_t>(class_name_index));
     }
 
+    void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
+    {
+        // Deallocate constants
+        for (auto& [key, obj] : stack_frame->constants)
+            if (obj) free_object(obj);
+
+        stack_frame->constants.clear();
+
+        // Deallocate variables
+        for (auto& [key, obj] : stack_frame->vars)
+            if (obj) free_object(obj);
+
+        stack_frame->vars.clear();
+        stack_frame->params.clear();
+    }
+
     ProgramSource YosenCompiler::compile_source(std::string& source)
     {
         ProgramSource program_source;
@@ -518,19 +729,5 @@ namespace yosen
 
         printf("\n");
         return bytecode;
-    }
-    
-    ys_runtime_function_t ProgramSource::get_entry_point_function(const std::string& name)
-    {
-        for (auto& fn : runtime_functions)
-            if (fn.first->name._Equal(name))
-                return fn;
-
-        YosenEnvironment::get().throw_exception(
-            RuntimeException("Could not find entry point \"" + name + "\"")
-        );
-
-        static ys_runtime_function_t s_dummy;
-        return s_dummy;
     }
 }

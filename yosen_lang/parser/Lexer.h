@@ -44,6 +44,7 @@ namespace yosen::parser
 			{ "-",		Operator::Sub			},
 			{ "*",		Operator::Mul			},
 			{ "/",		Operator::Div			},
+			{ "%",		Operator::Mod			},
 			{ "<",		Operator::LessThan		},
 			{ ">",		Operator::GreaterThan	},
 		};

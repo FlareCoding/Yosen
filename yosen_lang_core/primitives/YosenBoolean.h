@@ -3,29 +3,26 @@
 
 namespace yosen
 {
-	class YosenString : public YosenObject
+	class YosenBoolean : public YosenObject
 	{
 	public:
-		YOSENAPI YosenString();
-		YOSENAPI YosenString(const std::string& val);
+		YOSENAPI YosenBoolean();
+		YOSENAPI YosenBoolean(bool val);
 
 		YOSENAPI YosenObject* clone() override;
 		YOSENAPI std::string to_string() override;
 		YOSENAPI const char* runtime_name() const override;
-		
-		std::string value = "";
-		
-	private:
-		void register_member_native_functions();
 
-		YosenObject* reverse(YosenObject* self, YosenObject* args);
-		YosenObject* append(YosenObject* self, YosenObject* args);
+		bool value = false;
 
 	private:
 		void register_runtime_operator_functions();
 
-		YosenObject* operator_add(YosenObject* lhs, YosenObject* rhs);
 		YosenObject* operator_equ(YosenObject* lhs, YosenObject* rhs);
 		YosenObject* operator_notequ(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_greater(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_less(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_or(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_and(YosenObject* lhs, YosenObject* rhs);
 	};
 }

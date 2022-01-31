@@ -11,6 +11,7 @@ namespace yosen::parser
 		case Operator::Sub:
 		case Operator::Mul:
 		case Operator::Div:
+		case Operator::Mod:
 			return true;
 		default:
 			return false;
@@ -27,9 +28,9 @@ namespace yosen::parser
 		case Operator::GreaterThanOrEqual:
 		case Operator::Equequ:
 		case Operator::Notequ:
-		case Operator::Not:
-		case Operator::And:
 		case Operator::Or:
+		case Operator::And:
+		case Operator::Not:
 			return true;
 		default:
 			return false;
@@ -69,7 +70,10 @@ namespace yosen::parser
 
 		if (as<SymbolToken>(current_token)->symbol != symbol)
 		{
-			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected symbol found";
+			auto ex_reason = "Line " + std::to_string(current_token->lineno)
+							+ " - unexpected symbol found, expected a \""
+							+ SymbolToken::symbol_to_string(symbol) + "\"";
+
 			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
@@ -128,7 +132,7 @@ namespace yosen::parser
 	{
 		if (current_token->type != type)
 		{
-			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected symbol: " + Token::token_type_to_string(type);
+			auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected token: " + Token::token_type_to_string(type);
 			YosenEnvironment::get().throw_exception(ParserException(ex_reason));
 			return current_token;
 		}
@@ -215,12 +219,14 @@ namespace yosen::parser
 		else if (is_keyword(current_token, Keyword::Var))
 			node = parse_variable_declaration();
 
+		else if (is_keyword(current_token, Keyword::Return))
+			node = parse_return_statement();
+
 		else if (current_token->type == TokenType::Identifier)
 			node = parse_identifier();
 
-		// Check for semicolon presence
-		if (is_symbol(current_token, Symbol::Semicolon))
-			expect(Symbol::Semicolon);
+		// Expecting a semicolon after a statement
+		expect(Symbol::Semicolon);
 
 		return node;
 	}
@@ -240,12 +246,30 @@ namespace yosen::parser
 
 		return node;
 	}
+
+	ASTNode Parser::parse_return_statement()
+	{
+		expect(Keyword::Return);
+
+		ASTNode node;
+		node["type"] = ASTNodeType_ReturnStatement;
+		node["value"] = json11::Json::NUL;
+
+		// Check for a void return
+		if (is_symbol(current_token, Symbol::Semicolon))
+			return node;
+
+		// Parse the return value expression
+		node["value"] = parse_expression({ Symbol::Semicolon });
+
+		return node;
+	}
 	
 	ASTNode Parser::parse_identifier()
 	{
 		// Get the identifier value
-		auto identifier = as<IdentifierToken>(current_token)->value;
-		expect(TokenType::Identifier);
+		auto id_token = expect(TokenType::Identifier);
+		auto identifier = as<IdentifierToken>(id_token)->value;
 
 		// Check for namespace presence
 		while (is_operator(current_token, Operator::Namespace))
@@ -361,6 +385,48 @@ namespace yosen::parser
 		{
 			lhs = parse_identifier();
 		}
+		else if (is_operator(current_token, Operator::Not))
+		{
+			// Checking if a boolean "!" operator has been applied
+			expect(Operator::Not);
+
+			//
+			// Parse the right hand side value of the not operator
+			//
+			// The right hand side could be an identifier/function-call or a nested expression
+			if (is_symbol(current_token, Symbol::ParenthesisOpen))
+			{
+				// Expect this to be a nested expression
+				expect(Symbol::ParenthesisOpen);
+				auto conditional = parse_expression({ Symbol::ParenthesisClose });
+				expect(Symbol::ParenthesisClose);
+
+				ASTNode literal_value_node;
+				literal_value_node["type"] = ASTNodeType_Literal;
+				literal_value_node["value_type"] = LiteralValueToken::type_to_string(LiteralType::Boolean);
+				literal_value_node["value"] = "true";
+
+				lhs["type"] = ASTNodeType_BooleanOperation;
+				lhs["operator"] = "!=";
+				lhs["lhs"] = conditional;
+				lhs["rhs"] = literal_value_node;
+			}
+			else
+			{
+				// In any other case, expect an identifier
+				auto conditional = parse_identifier();
+
+				ASTNode literal_value_node;
+				literal_value_node["type"] = ASTNodeType_Literal;
+				literal_value_node["value_type"] = LiteralValueToken::type_to_string(LiteralType::Boolean);
+				literal_value_node["value"] = "true";
+
+				lhs["type"] = ASTNodeType_BooleanOperation;
+				lhs["operator"] = "!=";
+				lhs["lhs"] = conditional;
+				lhs["rhs"] = literal_value_node;
+			}
+		}
 		else if (is_keyword(current_token, Keyword::New))
 		{
 			// Check if "new" object is being allocated
@@ -404,26 +470,79 @@ namespace yosen::parser
 
 			expect(TokenType::LiteralValue);
 		}
-		else
-			return ASTNode();
 
 		// If stop symbol is found, then return the
 		// left hand side of the expression as the value.
 		if (is_stop_symbol(current_token, stop_symbols))
 		{
-			//expect(as<SymbolToken>(current_token)->symbol);
 			return lhs;
 		}
 
-		// If any other symbol is found, stop parsing the expression
-		if (current_token->type == TokenType::Symbol)
-			return lhs;
+		//
+		// Checking if there is a right side of the expression
+		// in the case of a binary or boolean operator usage.
+		//
+		if (current_token->type == TokenType::Operator)
+		{
+			auto& op_token = as<OperatorToken>(current_token);
+			auto& op = op_token->op;
 
-		// Prepare parsing the right hand side of the expression
-		ASTNode rhs;
+			// Make sure the token is either one of binary or boolean operators
+			if (!IsBinaryOperator(op) && !IsBooleanOperator(op))
+			{
+				auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected operator found: " + op_token->value;
+				YosenEnvironment::get().throw_exception(ParserException(ex_reason));
+			}
 
-		ASTNode node;
-		return node;
+			// Consume the operator token
+			expect(op);
+
+			// Determine the operation type
+			auto node_type = IsBinaryOperator(op) ? ASTNodeType_BinaryOperation : ASTNodeType_BooleanOperation;
+
+			// Parse the right hand side of the expression
+			ASTNode rhs = parse_expression(stop_symbols);
+
+			ASTNode result_node;
+			result_node["type"]		= node_type;
+			result_node["operator"]	= op_token->value;
+			result_node["lhs"]		= lhs;
+			result_node["rhs"]		= rhs;
+
+			// If the operator is <= or >= the expression
+			// has to be expanded into ((x < y) || (x == y)).
+			if (op_token->op == Operator::GreaterThanOrEqual ||
+				op_token->op == Operator::LessThanOrEqual)
+			{
+				auto left_operator = 
+					(op_token->op == Operator::GreaterThanOrEqual)
+					? ">"
+					: "<";
+
+				// Making the overall expression an OR expression
+				result_node["operator"] = "||";
+
+				ASTNode lhs_calculation;
+				lhs_calculation["type"]		= ASTNodeType_BooleanOperation;
+				lhs_calculation["operator"] = left_operator;
+				lhs_calculation["lhs"]		= lhs;
+				lhs_calculation["rhs"]		= rhs;
+
+				ASTNode rhs_calculation;
+				rhs_calculation["type"]		= ASTNodeType_BooleanOperation;
+				rhs_calculation["operator"] = "==";
+				rhs_calculation["lhs"]		= lhs;
+				rhs_calculation["rhs"]		= rhs;
+
+				// Adjusting the result node
+				result_node["lhs"] = lhs_calculation;
+				result_node["rhs"] = rhs_calculation;
+			}
+
+			return result_node;
+		}
+
+		return lhs;
 	}
 
 	ASTNode Parser::parse_function_call(const std::string& fn_name)
@@ -441,7 +560,7 @@ namespace yosen::parser
 			if (is_symbol(current_token, Symbol::ParenthesisClose))
 				break;
 
-			expect(TokenType::Symbol);
+			expect(Symbol::Comma);
 		}
 		expect(Symbol::ParenthesisClose);
 
@@ -527,8 +646,6 @@ namespace yosen::parser
 		node["type"] = ASTNodeType_VariableDeclaration;
 		node["name"] = as<IdentifierToken>(name_token)->value;
 		node["value"] = parse_expression({ Symbol::Semicolon });
-
-		expect(Symbol::Semicolon);
 
 		return node;
 	}

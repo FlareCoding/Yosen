@@ -146,22 +146,23 @@ namespace yosen::parser
 			++counter;
 			if (counter % 2 == 0)
 			{
-				if (!segment.empty())
-				{
-					// Replacing the previously fixed form-feed escape sequences
-					// with quotes.
-					std::replace(segment.begin(), segment.end(), '\f', '\"');
+				// Replacing the previously fixed form-feed escape sequences
+				// with quotes.
+				std::replace(segment.begin(), segment.end(), '\f', '\"');
 
-					auto token = make_token<LiteralValueToken>(LiteralType::String, segment);
-					token->lineno = lineno;
-					token_pool->add(token);
-				}
+				auto token = make_token<LiteralValueToken>(LiteralType::String, segment);
+				token->lineno = lineno;
+				token_pool->add(token);
 			}
 			else
 			{
 				std::stringstream stream_segment(segment);
 				while (std::getline(stream_segment, segment, ' '))
 				{
+					// If there is a comment in the middle of the line
+					if (segment.find("//") != std::string::npos)
+						break;
+
 					if (!segment.empty())
 					{
 						// Removing the leading and trailing whitespace
@@ -175,7 +176,7 @@ namespace yosen::parser
 	
 	void Lexer::parse_segment(const std::string& segment, size_t lineno)
 	{
-		std::regex rx(R"(::|>=|<=|/=|\*=|\-=|\-\-|\+=|\+\+|!=|==|&&|\|\||[!();:=,{}\[\]+*/\-])");
+		std::regex rx(R"(::|>=|<=|/=|\*=|\-=|\-\-|\+=|\+\+|!=|==|&&|\|\||[!();:=,{}\[\]+*/\-%])");
 		std::sregex_token_iterator srti(segment.begin(), segment.end(), rx, { -1, 0 });
 		std::vector<std::string> tokens;
 		std::remove_copy_if(srti, std::sregex_token_iterator(),
