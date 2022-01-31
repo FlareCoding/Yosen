@@ -545,6 +545,25 @@ namespace yosen
             bytecode.push_back(opcodes::REG_STORE);
             bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
         }
+        else
+        {
+            auto return_statement = node[parser::ASTNodeType_ReturnStatement];
+            if (return_statement["value"] == json11::Json::NUL)
+            {
+                // Load YosenObject_Null
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(0x00));
+            }
+            else
+            {
+                auto expression_node = return_statement["value"];
+                compile_expression(&expression_node, stack_frame, bytecode);
+            }
+
+            // Store the result in the return register
+            bytecode.push_back(opcodes::REG_STORE);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
+        }
 
         // Add the compiled function to the program source object
         program_source.runtime_functions.push_back({ stack_frame, bytecode });

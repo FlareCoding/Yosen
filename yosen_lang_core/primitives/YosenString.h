@@ -19,10 +19,13 @@ namespace yosen
 		void register_member_native_functions();
 
 		YosenObject* reverse(YosenObject* self, YosenObject* args);
+		YosenObject* append(YosenObject* self, YosenObject* args);
 
 	private:
 		void register_runtime_operator_functions();
 
 		YosenObject* operator_add(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_equ(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_notequ(YosenObject* lhs, YosenObject* rhs);
 	};
 }

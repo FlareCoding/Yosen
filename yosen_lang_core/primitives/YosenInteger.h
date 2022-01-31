@@ -23,5 +23,9 @@ namespace yosen
 		YosenObject* operator_mul(YosenObject* lhs, YosenObject* rhs);
 		YosenObject* operator_div(YosenObject* lhs, YosenObject* rhs);
 		YosenObject* operator_mod(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_equ(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_notequ(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_greater(YosenObject* lhs, YosenObject* rhs);
+		YosenObject* operator_less(YosenObject* lhs, YosenObject* rhs);
 	};
 }

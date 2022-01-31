@@ -219,6 +219,9 @@ namespace yosen::parser
 		else if (is_keyword(current_token, Keyword::Var))
 			node = parse_variable_declaration();
 
+		else if (is_keyword(current_token, Keyword::Return))
+			node = parse_return_statement();
+
 		else if (current_token->type == TokenType::Identifier)
 			node = parse_identifier();
 
@@ -243,12 +246,30 @@ namespace yosen::parser
 
 		return node;
 	}
+
+	ASTNode Parser::parse_return_statement()
+	{
+		expect(Keyword::Return);
+
+		ASTNode node;
+		node["type"] = ASTNodeType_ReturnStatement;
+		node["value"] = json11::Json::NUL;
+
+		// Check for a void return
+		if (is_symbol(current_token, Symbol::Semicolon))
+			return node;
+
+		// Parse the return value expression
+		node["value"] = parse_expression({ Symbol::Semicolon });
+
+		return node;
+	}
 	
 	ASTNode Parser::parse_identifier()
 	{
 		// Get the identifier value
-		auto identifier = as<IdentifierToken>(current_token)->value;
-		expect(TokenType::Identifier);
+		auto id_token = expect(TokenType::Identifier);
+		auto identifier = as<IdentifierToken>(id_token)->value;
 
 		// Check for namespace presence
 		while (is_operator(current_token, Operator::Namespace))
@@ -364,6 +385,48 @@ namespace yosen::parser
 		{
 			lhs = parse_identifier();
 		}
+		else if (is_operator(current_token, Operator::Not))
+		{
+			// Checking if a boolean "!" operator has been applied
+			expect(Operator::Not);
+
+			//
+			// Parse the right hand side value of the not operator
+			//
+			// The right hand side could be an identifier/function-call or a nested expression
+			if (is_symbol(current_token, Symbol::ParenthesisOpen))
+			{
+				// Expect this to be a nested expression
+				expect(Symbol::ParenthesisOpen);
+				auto conditional = parse_expression({ Symbol::ParenthesisClose });
+				expect(Symbol::ParenthesisClose);
+
+				ASTNode literal_value_node;
+				literal_value_node["type"] = ASTNodeType_Literal;
+				literal_value_node["value_type"] = LiteralValueToken::type_to_string(LiteralType::Boolean);
+				literal_value_node["value"] = "true";
+
+				lhs["type"] = ASTNodeType_BooleanOperation;
+				lhs["operator"] = "!=";
+				lhs["lhs"] = conditional;
+				lhs["rhs"] = literal_value_node;
+			}
+			else
+			{
+				// In any other case, expect an identifier
+				auto conditional = parse_identifier();
+
+				ASTNode literal_value_node;
+				literal_value_node["type"] = ASTNodeType_Literal;
+				literal_value_node["value_type"] = LiteralValueToken::type_to_string(LiteralType::Boolean);
+				literal_value_node["value"] = "true";
+
+				lhs["type"] = ASTNodeType_BooleanOperation;
+				lhs["operator"] = "!=";
+				lhs["lhs"] = conditional;
+				lhs["rhs"] = literal_value_node;
+			}
+		}
 		else if (is_keyword(current_token, Keyword::New))
 		{
 			// Check if "new" object is being allocated
@@ -445,6 +508,36 @@ namespace yosen::parser
 			result_node["operator"]	= op_token->value;
 			result_node["lhs"]		= lhs;
 			result_node["rhs"]		= rhs;
+
+			// If the operator is <= or >= the expression
+			// has to be expanded into ((x < y) || (x == y)).
+			if (op_token->op == Operator::GreaterThanOrEqual ||
+				op_token->op == Operator::LessThanOrEqual)
+			{
+				auto left_operator = 
+					(op_token->op == Operator::GreaterThanOrEqual)
+					? ">"
+					: "<";
+
+				// Making the overall expression an OR expression
+				result_node["operator"] = "||";
+
+				ASTNode lhs_calculation;
+				lhs_calculation["type"]		= ASTNodeType_BooleanOperation;
+				lhs_calculation["operator"] = left_operator;
+				lhs_calculation["lhs"]		= lhs;
+				lhs_calculation["rhs"]		= rhs;
+
+				ASTNode rhs_calculation;
+				rhs_calculation["type"]		= ASTNodeType_BooleanOperation;
+				rhs_calculation["operator"] = "==";
+				rhs_calculation["lhs"]		= lhs;
+				rhs_calculation["rhs"]		= rhs;
+
+				// Adjusting the result node
+				result_node["lhs"] = lhs_calculation;
+				result_node["rhs"] = rhs_calculation;
+			}
 
 			return result_node;
 		}

@@ -7,6 +7,10 @@ func reverse(str) {
 }
 */
 
+func test() {
+	return false;
+}
+
 func main(args)
 {
 	/*
@@ -30,5 +34,22 @@ func main(args)
 	io::println("The remainder of 12 % 9 is: " + (12 % 9));
 
 	var boolVar = true;
-	io::println(boolVar);
+	io::println("boolVar: " + boolVar);
+
+	var boolVar2 = false && boolVar;
+	io::println("boolVar2: " + boolVar2);
+
+	io::println(boolVar || boolVar2);
+	io::println(" ");
+	io::println(boolVar == boolVar2);
+	io::println(boolVar == !boolVar2);
+	io::println(boolVar != boolVar2);
+	io::println(" ");
+
+	io::println((4 <= 7) && (5 != 1));
+	io::println((4 <= 7) && !(5 != 1));
+	io::println(!((4 <= 7) && !(5 != 1)));
+
+	io::println(" ");
+	io::println(!test());
 }
