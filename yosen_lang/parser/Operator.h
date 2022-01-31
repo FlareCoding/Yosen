@@ -9,6 +9,7 @@ namespace yosen::parser
 		Sub,
 		Mul,
 		Div,
+		Mod,
 		Assignment,
 		AdditionAssignment,
 		SubtractionAssignment,

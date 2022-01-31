@@ -46,6 +46,17 @@ namespace yosen
         }
     }
 
+    static opcodes::opcode_t opcode_from_binary_operator(const std::string_view& op)
+    {
+        if (op._Equal("+")) return opcodes::ADD;
+        if (op._Equal("-")) return opcodes::SUB;
+        if (op._Equal("*")) return opcodes::MUL;
+        if (op._Equal("/")) return opcodes::DIV;
+        if (op._Equal("%")) return opcodes::MOD;
+
+        return 0;
+    }
+
     void YosenCompiler::debug_print_bytecode(bytecode_t& bytecode)
     {
         auto it = bytecode.begin();
@@ -93,6 +104,36 @@ namespace yosen
             case opcodes::PUSH:
             {
                 printf("PUSH\n");
+                break;
+            }
+            case opcodes::POP:
+            {
+                printf("POP\n");
+                break;
+            }
+            case opcodes::ADD:
+            {
+                printf("ADD\n");
+                break;
+            }
+            case opcodes::SUB:
+            {
+                printf("SUB\n");
+                break;
+            }
+            case opcodes::MUL:
+            {
+                printf("MUL\n");
+                break;
+            }
+            case opcodes::DIV:
+            {
+                printf("DIV\n");
+                break;
+            }
+            case opcodes::MOD:
+            {
+                printf("MOD\n");
                 break;
             }
             case opcodes::CALL:
@@ -262,6 +303,38 @@ namespace yosen
             // Load the allocated object
             bytecode.push_back(opcodes::REG_LOAD);
             bytecode.push_back(static_cast<opcodes::opcode_t>(0x01));
+        }
+        else if (value_node_type._Equal(parser::ASTNodeType_BinaryOperation))
+        {
+            //
+            // If the expression is a binary operation (+, -, *, or /)
+            //
+            // 
+            // First compile the left hand side and load it into LLOref object
+            auto lhs_node = node["lhs"];
+            compile_expression(&lhs_node, stack_frame, bytecode);
+
+            // Push the loaded object onto the parameter stack
+            bytecode.push_back(opcodes::PUSH);
+
+            // Next compile the right hand side and load it into LLOref object
+            auto rhs_node = node["rhs"];
+            compile_expression(&rhs_node, stack_frame, bytecode);
+
+            // Push the loaded object onto the parameter stack
+            bytecode.push_back(opcodes::PUSH);
+
+            // Call the appropriate binary operator
+            auto operator_instruction = opcode_from_binary_operator(node["operator"].string_value());
+            bytecode.push_back(operator_instruction);
+
+            // Pop the last two objects off the parameter stack
+            bytecode.push_back(opcodes::POP);
+            bytecode.push_back(opcodes::POP);
+        }
+        else if (value_node_type._Equal(parser::ASTNodeType_BooleanOperation))
+        {
+            // If the expression is a binary operation (+, -, *, or /)
         }
     }
 

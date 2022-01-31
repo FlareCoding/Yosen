@@ -11,6 +11,7 @@ namespace yosen::parser
 		case Operator::Sub:
 		case Operator::Mul:
 		case Operator::Div:
+		case Operator::Mod:
 			return true;
 		default:
 			return false;
@@ -224,9 +225,6 @@ namespace yosen::parser
 		// Expecting a semicolon after a statement
 		expect(Symbol::Semicolon);
 
-		/*if (is_symbol(current_token, Symbol::Semicolon))
-			expect(Symbol::Semicolon);*/
-
 		return node;
 	}
 
@@ -409,26 +407,49 @@ namespace yosen::parser
 
 			expect(TokenType::LiteralValue);
 		}
-		else
-			return ASTNode();
 
 		// If stop symbol is found, then return the
 		// left hand side of the expression as the value.
 		if (is_stop_symbol(current_token, stop_symbols))
 		{
-			//expect(as<SymbolToken>(current_token)->symbol);
 			return lhs;
 		}
 
-		// If any other symbol is found, stop parsing the expression
-		if (current_token->type == TokenType::Symbol)
-			return lhs;
+		//
+		// Checking if there is a right side of the expression
+		// in the case of a binary or boolean operator usage.
+		//
+		if (current_token->type == TokenType::Operator)
+		{
+			auto& op_token = as<OperatorToken>(current_token);
+			auto& op = op_token->op;
 
-		// Prepare parsing the right hand side of the expression
-		ASTNode rhs;
+			// Make sure the token is either one of binary or boolean operators
+			if (!IsBinaryOperator(op) && !IsBooleanOperator(op))
+			{
+				auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - unexpected operator found: " + op_token->value;
+				YosenEnvironment::get().throw_exception(ParserException(ex_reason));
+			}
 
-		ASTNode node;
-		return node;
+			// Consume the operator token
+			expect(op);
+
+			// Determine the operation type
+			auto node_type = IsBinaryOperator(op) ? ASTNodeType_BinaryOperation : ASTNodeType_BooleanOperation;
+
+			// Parse the right hand side of the expression
+			ASTNode rhs = parse_expression(stop_symbols);
+
+			ASTNode result_node;
+			result_node["type"]		= node_type;
+			result_node["operator"]	= op_token->value;
+			result_node["lhs"]		= lhs;
+			result_node["rhs"]		= rhs;
+
+			return result_node;
+		}
+
+		return lhs;
 	}
 
 	ASTNode Parser::parse_function_call(const std::string& fn_name)

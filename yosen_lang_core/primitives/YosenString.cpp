@@ -5,12 +5,14 @@ namespace yosen
 	YosenString::YosenString()
 	{
 		register_member_native_functions();
+		register_runtime_operator_functions();
 	}
 
 	YosenString::YosenString(const std::string& val)
 		: value(val)
 	{
 		register_member_native_functions();
+		register_runtime_operator_functions();
 	}
 	
 	YosenObject* YosenString::clone()
@@ -42,5 +44,20 @@ namespace yosen
 		std::reverse(val_copy.begin(), val_copy.end());
 
 		return allocate_object<YosenString>(val_copy);
+	}
+	
+	void YosenString::register_runtime_operator_functions()
+	{
+		add_runtime_operator_function(RuntimeOperator::BinOpAdd, MEMBER_FUNCTION(operator_add));
+	}
+
+	YosenObject* YosenString::operator_add(YosenObject* lhs, YosenObject* rhs)
+	{
+		auto left_string  = static_cast<YosenString*>(lhs)->value;
+		auto right_string = rhs->to_string();
+
+		auto result_string = left_string + right_string;
+
+		return allocate_object<YosenString>(result_string);
 	}
 }

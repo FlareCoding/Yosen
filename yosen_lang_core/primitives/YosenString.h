@@ -19,5 +19,10 @@ namespace yosen
 		void register_member_native_functions();
 
 		YosenObject* reverse(YosenObject* self, YosenObject* args);
+
+	private:
+		void register_runtime_operator_functions();
+
+		YosenObject* operator_add(YosenObject* lhs, YosenObject* rhs);
 	};
 }

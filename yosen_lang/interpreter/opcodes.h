@@ -27,9 +27,13 @@ namespace yosen
 		// 2nd Operand: flag that specifies whether a function has an owner object, 0x00 if a static function.
 		constexpr opcode_t CALL			= 0x60;
 
-		// Copies the last loaded object onto the frame's parameter stack.
+		// Copies the last loaded object onto the stack frame's parameter stack.
 		// No operands
 		constexpr opcode_t PUSH			= 0x81;
+
+		// Pops the last object from the stack frame's parameter stack.
+		// No operands
+		constexpr opcode_t POP			= 0x82;
 
 		// Loads the variable from speicified register into the Last Loaded Object pointer.
 		// Operand: index/key of the frame's register.
@@ -52,6 +56,26 @@ namespace yosen
 		// Imports a dynamic module or library.
 		// 1st Operand:	index of the library name in the frame's imported library names array.
 		constexpr opcode_t IMPORT_LIB	= 0x99;
+
+		// Adds the last two loaded objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t ADD = 0x30;
+
+		// Subtracts the last two loaded objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t SUB = 0x31;
+
+		// Multiplies the last two loaded objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t MUL = 0x32;
+
+		// Divides the last two loaded objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t DIV = 0x33;
+
+		// Calculates the remainder of the last two loaded objects and stores the result into the last loaded object.
+		// No operands
+		constexpr opcode_t MOD = 0x34;
 
 #define RETURN REG_STORE, 0x02
 	}

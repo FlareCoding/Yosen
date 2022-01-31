@@ -177,7 +177,7 @@ namespace yosen
 
         return result;
     }
-	
+
 	void YosenInterpreter::run_interactive_shell()
 	{
         // Tell the interpreter that it is
@@ -359,6 +359,41 @@ namespace yosen
             m_parameter_stacks.top().push_back((*LLOref)->clone());
             break;
         }
+        case opcodes::POP:
+        {
+            // Free the object before popping
+            auto& obj = m_parameter_stacks.top().back();
+            free_object(obj);
+
+            // Pop the last object from the parameter stack
+            m_parameter_stacks.top().pop_back();
+            break;
+        }
+        case opcodes::ADD:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpAdd);
+            break;
+        }
+        case opcodes::SUB:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpSub);
+            break;
+        }
+        case opcodes::MUL:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpMul);
+            break;
+        }
+        case opcodes::DIV:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpDiv);
+            break;
+        }
+        case opcodes::MOD:
+        {
+            execute_runtime_operator_instruction(RuntimeOperator::BinOpMod);
+            break;
+        }
         case opcodes::IMPORT_LIB:
         {
             // Operand is the key of the register into which the loaded object has to be copied
@@ -526,4 +561,28 @@ namespace yosen
 
         return opcount;
 	}
+
+    void YosenInterpreter::execute_runtime_operator_instruction(RuntimeOperator op)
+    {
+        auto& parameter_stack = m_parameter_stacks.top();
+        auto& lhs = parameter_stack.at(parameter_stack.size() - 2);
+        auto& rhs = parameter_stack.at(parameter_stack.size() - 1);
+
+        // Operation result
+        auto result = lhs->call_runtime_operator_function(op, rhs);
+
+        // Retrieve the original object from the allocated object register
+        auto original_object = m_registers[RegisterType::AllocatedObjectRegister];
+
+        // Copy the object into the register
+        m_registers[RegisterType::AllocatedObjectRegister] = result;
+
+        // Load the result into the LLOref as well
+        LLOref = &m_registers[RegisterType::AllocatedObjectRegister];
+
+        // Free the original object
+        if (original_object)
+            free_object(original_object);
+    }
+
 }

@@ -1,12 +1,15 @@
 // Contains io:: functions
 import stdio;
 
+/*
 func reverse(str) {
 	io::println(str.reverse());
 }
+*/
 
 func main(args)
 {
+	/*
 	io::println(args.length());
 	io::println(args);
 	io::println(args.get(0));
@@ -19,4 +22,10 @@ func main(args)
 	var str = "Hello World";
 	io::println(str);
 	reverse(str);
+	*/
+
+	io::println("Hello " + "World");
+	io::println("Number is " + 7);
+	io::println(15 / 3 + 3);
+	io::println("The remainder of 12 % 9 is: " + (12 % 9));
 }
