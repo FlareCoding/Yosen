@@ -146,16 +146,13 @@ namespace yosen::parser
 			++counter;
 			if (counter % 2 == 0)
 			{
-				if (!segment.empty())
-				{
-					// Replacing the previously fixed form-feed escape sequences
-					// with quotes.
-					std::replace(segment.begin(), segment.end(), '\f', '\"');
+				// Replacing the previously fixed form-feed escape sequences
+				// with quotes.
+				std::replace(segment.begin(), segment.end(), '\f', '\"');
 
-					auto token = make_token<LiteralValueToken>(LiteralType::String, segment);
-					token->lineno = lineno;
-					token_pool->add(token);
-				}
+				auto token = make_token<LiteralValueToken>(LiteralType::String, segment);
+				token->lineno = lineno;
+				token_pool->add(token);
 			}
 			else
 			{

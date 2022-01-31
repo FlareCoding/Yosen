@@ -1,11 +1,9 @@
 // Contains io:: functions
 import stdio;
 
-/*
 func reverse(str) {
 	io::println(str.reverse());
 }
-*/
 
 func test() {
 	return false;
@@ -13,20 +11,16 @@ func test() {
 
 func main(args)
 {
-	/*
 	io::println(args.length());
 	io::println(args);
 	io::println(args.get(0));
 	
 	var age = io::input("Enter your age: ");
-	io::print("You are ");
-	io::print(age);
-	io::println(" years old!");
+	io::println("You are " + age + " years old");
 
 	var str = "Hello World";
 	io::println(str);
 	reverse(str);
-	*/
 
 	io::println("Hello " + "World");
 	io::println("Number is " + 7);
@@ -40,16 +34,16 @@ func main(args)
 	io::println("boolVar2: " + boolVar2);
 
 	io::println(boolVar || boolVar2);
-	io::println(" ");
+	io::println("");
 	io::println(boolVar == boolVar2);
 	io::println(boolVar == !boolVar2);
 	io::println(boolVar != boolVar2);
-	io::println(" ");
+	io::println("");
 
 	io::println((4 <= 7) && (5 != 1));
 	io::println((4 <= 7) && !(5 != 1));
 	io::println(!((4 <= 7) && !(5 != 1)));
 
-	io::println(" ");
+	io::println("");
 	io::println(!test());
 }
