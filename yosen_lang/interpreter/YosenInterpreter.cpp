@@ -530,7 +530,18 @@ namespace yosen
                     {
                         if (fn_stack_frame->params.size() != param_count)
                         {
-                            throw "Incorrect number of parameters passed";
+                            // Deallocate the parameter pack object
+                            free_object(param_pack);
+
+                            // Clear the parameter stack
+                            parameter_stack.clear();
+
+                            auto ex_reason =    "function \"" + fn_name + "\" expected " +
+                                                std::to_string(fn_stack_frame->params.size()) + 
+                                                " arguments, received " + std::to_string(param_count) + 
+                                                " arguments";
+
+                            m_env->throw_exception(RuntimeException(ex_reason));
                             return 0;
                         }
 
