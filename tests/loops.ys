@@ -1,0 +1,6 @@
+import stdio;
+
+func main()
+{
+    io::println("Hello Loops!");
+}
