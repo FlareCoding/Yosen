@@ -2,5 +2,14 @@ import stdio;
 
 func main()
 {
-    io::println("Hello Loops!");
+    var x = 0;
+
+    while (x < 5) {
+        x = x + 1;
+        io::println(x);
+
+        if (x == 4) {
+            break;
+        }
+    }
 }

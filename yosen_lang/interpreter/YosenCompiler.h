@@ -1,6 +1,7 @@
 #pragma once
 #include <YosenEnvironment.h>
 #include "opcodes.h"
+#include <stack>
 
 // Forward declaration
 namespace json11 { class Json; }
@@ -61,6 +62,12 @@ namespace yosen
 		// Compiles a conditional if/else statement from an AST node
 		void compile_conditional(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Compiles a while loop from an AST node
+		void compile_while_loop(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
+
+		// Compiles a break statement from an AST node
+		void compile_break_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
+
 	private:
 		// In case an exception occurs, the variables
 		// on the stack frame should get freed.
@@ -69,5 +76,11 @@ namespace yosen
 		// Frees all compiled resources on allocated
 		// stack frames in an event if exception occurs.
 		void __ys_free_compiled_resources(StackFramePtr faulty_stack_frame);
+
+	private:
+		// Each loop gets its own list of indices to be replaced.
+		// If a break statement occurs, the instruction pointer should
+		// jump to the end of the loop.
+		std::stack<std::vector<size_t>> loop_break_jmp_operand_indices;
 	};
 }

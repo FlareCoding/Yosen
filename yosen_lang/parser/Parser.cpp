@@ -228,6 +228,15 @@ namespace yosen::parser
 		else if (is_keyword(current_token, Keyword::If))
 			return parse_conditional_statement(); // no semicolon expected after a conditional statement
 
+		else if (is_keyword(current_token, Keyword::While))
+			return parse_while_loop();
+
+		else if (is_keyword(current_token, Keyword::Break))
+		{
+			expect(Keyword::Break);
+			node["type"] = ASTNodeType_BreakStatement;
+		}
+
 		// Expecting a semicolon after a statement
 		expect(Symbol::Semicolon);
 
@@ -305,8 +314,6 @@ namespace yosen::parser
 			node["type"] = ASTNodeType_VariableAssignment;
 			node["name"] = identifier;
 			node["value"] = value;
-
-			expect(Symbol::Semicolon);
 
 			return node;
 		}
@@ -716,6 +723,41 @@ namespace yosen::parser
 		
 		if (else_body_statements.size())
 			result["else_body"] = else_body_statements;
+
+		return result;
+	}
+
+	ASTNode Parser::parse_while_loop()
+	{
+		expect(Keyword::While);
+
+		// Beginning of a condition expression
+		expect(Symbol::ParenthesisOpen);
+
+		// Parse the condition expression
+		auto condition = parse_expression({ Symbol::ParenthesisClose });
+
+		// End of the condition expression
+		expect(Symbol::ParenthesisClose);
+
+		// List of all statements in the "if" statement's body
+		json11::Json::array loop_body_statements;
+
+		// Start processing body statements
+		expect(Symbol::BraceOpen);
+		while (!is_symbol(current_token, Symbol::BraceClose))
+		{
+			auto body_node = parse_statement();
+
+			if (!body_node.empty())
+				loop_body_statements.push_back(body_node);
+		}
+		expect(Symbol::BraceClose);
+
+		ASTNode result;
+		result["type"] = ASTNodeType_WhileLoop;
+		result["condition"] = condition;
+		result["body"] = loop_body_statements;
 
 		return result;
 	}

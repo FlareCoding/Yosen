@@ -304,6 +304,12 @@ namespace yosen
 
         else if (type._Equal(parser::ASTNodeType_Conditional))
             compile_conditional(node_ptr, stack_frame, bytecode);
+
+        else if (type._Equal(parser::ASTNodeType_WhileLoop))
+            compile_while_loop(node_ptr, stack_frame, bytecode);
+
+        else if (type._Equal(parser::ASTNodeType_BreakStatement))
+            compile_break_statement(node_ptr, stack_frame, bytecode);
     }
 
     void YosenCompiler::compile_import_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -709,8 +715,6 @@ namespace yosen
     void YosenCompiler::compile_conditional(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
     {
         auto& node = *node_ptr;
-        auto current_instruction_index = bytecode.size();
-
         auto condition_expression = node["condition"];
 
         // Compile the condition
@@ -760,6 +764,58 @@ namespace yosen
             // earlier to jump to the place after the else block.
             bytecode[final_if_jmp_instruction_index + 1] = static_cast<opcodes::opcode_t>(next_instruction_index);
         }
+    }
+
+    void YosenCompiler::compile_while_loop(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        auto& node = *node_ptr;
+        auto condition_expression = node["condition"];
+
+        // Get the starting instruction index
+        auto condition_instruction_index = bytecode.size();
+
+        // Push to the loop stack
+        loop_break_jmp_operand_indices.push({});
+
+        // Compile the condition
+        compile_expression(&condition_expression, stack_frame, bytecode);
+
+        // If the condition is false, then jump out of the loop
+        bytecode.push_back(opcodes::JMP_IF_FALSE);
+
+        loop_break_jmp_operand_indices.top().push_back(bytecode.size());
+        bytecode.push_back(0x0); // dummy address, will get replaced later
+
+        // Compile the loop body
+        auto& loop_body = node["body"];
+
+        for (auto statement : loop_body.array_items())
+        {
+            compile_statement(&statement, stack_frame, bytecode);
+        }
+
+        // After all body statements finish executing,
+        // jump back to the condition expression.
+        bytecode.push_back(opcodes::JMP);
+        bytecode.push_back(static_cast<opcodes::opcode_t>(condition_instruction_index));
+
+        // First instruction that is not part of the loop
+        auto next_instruction_index = bytecode.size();
+
+        // Fix all jmp instruction operands
+        for (auto& op_idx : loop_break_jmp_operand_indices.top())
+            bytecode[op_idx] = static_cast<opcodes::opcode_t>(next_instruction_index);
+
+        // Pop the loop off the loop stack
+        loop_break_jmp_operand_indices.pop();
+    }
+
+    void YosenCompiler::compile_break_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        bytecode.push_back(opcodes::JMP);
+
+        loop_break_jmp_operand_indices.top().push_back(bytecode.size());
+        bytecode.push_back(0x0);
     }
 
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
