@@ -107,6 +107,15 @@ namespace yosen
 		// No operands
 		constexpr opcode_t AND = 0x40;
 
+		// Jumps to a different execution location in bytecode.
+		// Operand: instruction index to which the execution pointer should jump.
+		constexpr opcode_t JMP = 0x10;
+
+		// Jumps to a different execution location in bytecode if
+		// the previously loaded boolean condition evaluates to false.
+		// Operand: instruction index to which the execution pointer should jump.
+		constexpr opcode_t JMP_IF_FALSE = 0x11;
+
 #define RETURN REG_STORE, 0x02
 	}
 }

@@ -58,6 +58,9 @@ namespace yosen
 		// Compiles a class instantiation logic from an AST node
 		void compile_class_instantiation(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Compiles a conditional if/else statement from an AST node
+		void compile_conditional(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
+
 	private:
 		// In case an exception occurs, the variables
 		// on the stack frame should get freed.

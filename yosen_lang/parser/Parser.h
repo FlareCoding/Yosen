@@ -118,5 +118,8 @@ namespace yosen::parser
 
 		// Parses specifically a variable declaration
 		ASTNode parse_variable_declaration();
+
+		// Parser if/else if/else blocks
+		ASTNode parse_conditional_statement();
 	};
 }

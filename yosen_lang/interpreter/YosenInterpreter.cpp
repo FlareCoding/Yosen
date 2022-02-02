@@ -274,12 +274,12 @@ namespace yosen
                 break;
             }
 
-            auto incr = execute_instruction(stack_frame, &bytecode[i]);
+            auto incr = execute_instruction(stack_frame, &bytecode[i], i);
             i += incr;
         }
 	}
 
-	size_t YosenInterpreter::execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops)
+	size_t YosenInterpreter::execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops, size_t& current_instruction)
 	{
         size_t opcount = 1;
         auto op = ops[0];
@@ -422,6 +422,49 @@ namespace yosen
         case opcodes::AND:
         {
             execute_runtime_operator_instruction(RuntimeOperator::BoolOpAnd);
+            break;
+        }
+        case opcodes::JMP:
+        {
+            // Operand is the index of instruction to jump to
+            auto operand = ops[1];
+            opcount = 2;
+
+            // Adjust the current instruction to
+            // the value that should be jumped to.
+            current_instruction = operand;
+
+            // Increment of instructions should be 0
+            // since we already jump to the right instruction.
+            return 0;
+        }
+        case opcodes::JMP_IF_FALSE:
+        {
+            // Operand is the index of instruction to jump to if boolean expression evaluates to false
+            auto operand = ops[1];
+            opcount = 2;
+
+            if (!LLOref || strcmp((*LLOref)->runtime_name(), "Boolean") != 0)
+            {
+                auto ex_reason = "conditional expression is not a boolean";
+                m_env->throw_exception(RuntimeException(ex_reason));
+                return 0;
+            }
+
+            // Get the boolean value of the loaded conditional expression
+            auto value = static_cast<YosenBoolean*>((*LLOref))->value;
+
+            if (!value)
+            {
+                // Adjust the current instruction to
+                // the value that should be jumped to.
+                current_instruction = operand;
+
+                // Increment of instructions should be 0
+                // since we already jump to the right instruction.
+                return 0;
+            }
+
             break;
         }
         case opcodes::IMPORT_LIB:
