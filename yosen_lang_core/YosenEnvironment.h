@@ -95,7 +95,7 @@ namespace yosen
 		);
 
 	private:
-		void initialize_standard_library();
+		void initialize_primitive_casting_functions();
 
 	private:
 		// Empty string denotes global namespace
