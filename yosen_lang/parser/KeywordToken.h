@@ -13,7 +13,6 @@ namespace yosen::parser
 		For,
 		Break,
 		If,
-		Elif,
 		Else,
 		Class,
 		This,

@@ -17,4 +17,5 @@ namespace yosen::parser
 	constexpr auto ASTNodeType_Import				= "import";
 	constexpr auto ASTNodeType_BinaryOperation		= "binary_operation";
 	constexpr auto ASTNodeType_BooleanOperation		= "boolean_operation";
+	constexpr auto ASTNodeType_Conditional			= "conditional";
 }

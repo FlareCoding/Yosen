@@ -1,5 +1,6 @@
 #include "YosenCompiler.h"
 #include "parser/Parser.h"
+#include <iostream>
 
 namespace yosen
 {
@@ -80,6 +81,11 @@ namespace yosen
 
         while (it != bytecode.end())
         {
+            auto instruction_idx = (it - bytecode.begin());
+            auto instruction_idx_str = "(" + std::to_string(instruction_idx) + ")";
+
+            std::cout << std::setw(10) << std::left << instruction_idx_str;
+
             switch (*it)
             {
             case opcodes::LOAD:
@@ -205,6 +211,18 @@ namespace yosen
                 printf("IMPORT_LIB 0x%x\n", *it);
                 break;
             }
+            case opcodes::JMP:
+            {
+                it++;
+                printf("JMP %i\n", *it);
+                break;
+            }
+            case opcodes::JMP_IF_FALSE:
+            {
+                it++;
+                printf("JMP_IF_FALSE %i\n", *it);
+                break;
+            }
             default:
                 printf("0x%x ", *it);
             }
@@ -281,8 +299,11 @@ namespace yosen
         else if (type._Equal(parser::ASTNodeType_VariableAssignment))
             compile_variable_assignment(node_ptr, stack_frame, bytecode);
 
-        if (type._Equal(parser::ASTNodeType_FunctionCall))
+        else if (type._Equal(parser::ASTNodeType_FunctionCall))
             compile_function_call(node_ptr, stack_frame, bytecode);
+
+        else if (type._Equal(parser::ASTNodeType_Conditional))
+            compile_conditional(node_ptr, stack_frame, bytecode);
     }
 
     void YosenCompiler::compile_import_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -673,6 +694,62 @@ namespace yosen
         bytecode.push_back(static_cast<opcodes::opcode_t>(class_name_index));
     }
 
+    void YosenCompiler::compile_conditional(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        auto& node = *node_ptr;
+        auto current_instruction_index = bytecode.size();
+
+        auto condition_expression = node["condition"];
+
+        // Compile the condition
+        compile_expression(&condition_expression, stack_frame, bytecode);
+
+        auto if_false_jmp_instruction_index = bytecode.size();
+        bytecode.push_back(opcodes::JMP_IF_FALSE);
+        bytecode.push_back(0x0); // dummy address, will get replaced later
+
+        // Compile the body of the if statement
+        auto& if_body = node["if_body"];
+
+        for (auto statement : if_body.array_items())
+        {
+            compile_statement(&statement, stack_frame, bytecode);
+        }
+
+        // At the end of the if statement, it should skip
+        // over the else block if there is one and jump to the next instruction.
+        auto final_if_jmp_instruction_index = bytecode.size();
+
+        bytecode.push_back(opcodes::JMP);
+        bytecode.push_back(0x0); // dummy address, will get replaced later
+
+         // Get the instruction index at the end of the conditional
+        auto next_instruction_index = bytecode.size();
+
+        // Fix the jump instruction operands from earlier
+        bytecode[if_false_jmp_instruction_index + 1] = static_cast<opcodes::opcode_t>(next_instruction_index);
+        bytecode[final_if_jmp_instruction_index + 1] = static_cast<opcodes::opcode_t>(next_instruction_index);
+
+        // Check if there is an "else" statement in the conditional
+        auto else_body = node["else_body"];
+
+        if (else_body != json11::Json::NUL)
+        {
+            // Compile the items in the else statement
+            for (auto statement : else_body.array_items())
+            {
+                compile_statement(&statement, stack_frame, bytecode);
+            }
+
+            // Get the instruction index at the end of the conditional
+            next_instruction_index = bytecode.size();
+
+            // Fix the final jump instruction operand from
+            // earlier to jump to the place after the else block.
+            bytecode[final_if_jmp_instruction_index + 1] = static_cast<opcodes::opcode_t>(next_instruction_index);
+        }
+    }
+
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
     {
         // Deallocate constants
@@ -705,8 +782,10 @@ namespace yosen
                 YosenEnvironment::get().load_yosen_module(library_name);
                 continue;
             }
-
-            compile_function_declaration(&node, program_source);
+            else if (node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
+            {
+                compile_function_declaration(&node, program_source);
+            }
         }
 
         return program_source;

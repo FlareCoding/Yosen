@@ -225,6 +225,9 @@ namespace yosen::parser
 		else if (current_token->type == TokenType::Identifier)
 			node = parse_identifier();
 
+		else if (is_keyword(current_token, Keyword::If))
+			return parse_conditional_statement(); // no semicolon expected after a conditional statement
+
 		// Expecting a semicolon after a statement
 		expect(Symbol::Semicolon);
 
@@ -648,5 +651,72 @@ namespace yosen::parser
 		node["value"] = parse_expression({ Symbol::Semicolon });
 
 		return node;
+	}
+	
+	ASTNode Parser::parse_conditional_statement()
+	{
+		// First if statement
+		expect(Keyword::If);
+
+		// Beginning of a condition expression
+		expect(Symbol::ParenthesisOpen);
+		
+		// Parse the condition expression
+		auto condition = parse_expression({ Symbol::ParenthesisClose });
+
+		// End of the condition expression
+		expect(Symbol::ParenthesisClose);
+
+		// List of all statements in the "if" statement's body
+		json11::Json::array if_body_statements;
+
+		// Start processing body statements
+		expect(Symbol::BraceOpen);
+		while (!is_symbol(current_token, Symbol::BraceClose))
+		{
+			auto body_node = parse_statement();
+
+			if (!body_node.empty())
+				if_body_statements.push_back(body_node);
+		}
+		expect(Symbol::BraceClose);
+
+		// List of all statements in the "if" statement's body
+		json11::Json::array else_body_statements;
+
+		if (is_keyword(current_token, Keyword::Else))
+		{
+			expect(Keyword::Else);
+
+			// Check if it's an "else if" statement
+			if (is_keyword(current_token, Keyword::If))
+			{
+				auto else_body_node = parse_conditional_statement();
+				else_body_statements.push_back(else_body_node);
+			}
+			else
+			{
+				// Start processing body statements
+				expect(Symbol::BraceOpen);
+				while (!is_symbol(current_token, Symbol::BraceClose))
+				{
+					auto body_node = parse_statement();
+
+					if (!body_node.empty())
+						else_body_statements.push_back(body_node);
+				}
+				expect(Symbol::BraceClose);
+			}
+		}
+
+		ASTNode result;
+		result["type"] = ASTNodeType_Conditional;
+		result["condition"] = condition;
+		result["if_body"] = if_body_statements;
+		
+		if (else_body_statements.size())
+			result["else_body"] = else_body_statements;
+
+		return result;
 	}
 }

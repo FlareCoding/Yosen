@@ -74,7 +74,7 @@ namespace yosen
 	private:
 		// Executes a single instruction that could consist of single or multiple opcodes.
 		// Returns number of opcodes processed.
-		size_t execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops);
+		size_t execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops, size_t& current_instruction);
 
 		// Used within the interactive shell to parse function declarations
 		std::string read_block_source(const std::string& header, const std::string& tab_space);

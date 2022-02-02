@@ -1,0 +1,18 @@
+import stdio;
+
+func main()
+{
+	var age = int(io::input("Enter your age: "));
+
+	if (age < 5) {
+		io::println("You are too young to play with legos");
+	}
+	else if (age <= 18) {
+		io::println("You can play with legos!");
+	}
+	else {
+		io::println("You are too old to play with legos");
+	}
+
+	io::println("\nEnd of main() function\n");
+}

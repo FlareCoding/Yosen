@@ -28,7 +28,6 @@ namespace yosen::parser
 			{ "for",		Keyword::For	},
 			{ "break",		Keyword::Break	},
 			{ "if",			Keyword::If		},
-			{ "elseif",		Keyword::Elif	},
 			{ "else",		Keyword::Else	},
 			{ "class",		Keyword::Class	},
 			{ "this",		Keyword::This	},
