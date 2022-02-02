@@ -512,7 +512,10 @@ namespace yosen
 
         // Registering the function name
         stack_frame->name = node["name"].string_value();
+
+#if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
         printf("Compiling function \"%s\"...\n", stack_frame->name.c_str());
+#endif
 
         // Allocating a Null object in the variables map (always first)
         stack_frame->var_keys.insert({ "null", 0 });
@@ -523,7 +526,10 @@ namespace yosen
         for (auto& param : node["params"].array_items())
         {
             auto param_name = param.string_value();
+
+#if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
             printf("\tParameter: \"%s\"\n", param_name.c_str());
+#endif
 
             // Registering the parameter on the stack frame
             stack_frame->params.push_back({ param_name, nullptr });
@@ -550,7 +556,10 @@ namespace yosen
 
         for (auto statement : body.array_items())
         {
+#if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
             printf("%s\n", statement.dump().c_str());
+#endif
+
             compile_statement(&statement, stack_frame, bytecode);
         }
 
@@ -589,9 +598,12 @@ namespace yosen
         // Add the compiled function to the program source object
         program_source.runtime_functions.push_back({ stack_frame, bytecode });
 
+
+#if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
         printf("\n");
         debug_print_bytecode(bytecode);
         printf("\n");
+#endif
     }
 
     void YosenCompiler::compile_variable_declaration(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -797,16 +809,20 @@ namespace yosen
 
         parser::Parser parser;
         auto ast = parser.parse_single_statement(source);
+
+        compile_statement(&ast, stack_frame, bytecode);
+
+#if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
         printf("\nAST:\n");
         printf("%s\n", ast.dump().c_str());
         printf("\n");
-
-        compile_statement(&ast, stack_frame, bytecode);
 
         printf("Bytecode:\n");
         debug_print_bytecode(bytecode);
 
         printf("\n");
+#endif
+
         return bytecode;
     }
 }
