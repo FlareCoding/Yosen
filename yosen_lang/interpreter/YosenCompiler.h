@@ -68,6 +68,9 @@ namespace yosen
 		// Compiles a while loop from an AST node
 		void compile_while_loop(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Compiles a for loop from an AST node
+		void compile_for_loop(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
+
 		// Compiles a break statement from an AST node
 		void compile_break_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 

@@ -231,6 +231,9 @@ namespace yosen::parser
 		else if (is_keyword(current_token, Keyword::While))
 			return parse_while_loop();
 
+		else if (is_keyword(current_token, Keyword::For))
+			return parse_for_loop();
+
 		else if (is_keyword(current_token, Keyword::Break))
 		{
 			expect(Keyword::Break);
@@ -318,6 +321,44 @@ namespace yosen::parser
 			return node;
 		}
 
+		// Check for compact binary assignment
+		if (is_operator(current_token, Operator::AdditionAssignment) ||
+			is_operator(current_token, Operator::SubtractionAssignment) ||
+			is_operator(current_token, Operator::MultiplicationAssignment) ||
+			is_operator(current_token, Operator::DivisionAssignment))
+		{
+			auto& op_token = as<OperatorToken>(current_token);
+			expect(op_token->op);
+
+			auto expanded_operator = "+";
+			if (op_token->op == Operator::SubtractionAssignment)
+				expanded_operator = "-";
+			else if (op_token->op == Operator::MultiplicationAssignment)
+				expanded_operator = "*";
+			else if (op_token->op == Operator::DivisionAssignment)
+				expanded_operator = "/";
+
+			// Parse the right hand side
+			auto rhs = parse_expression({ Symbol::Semicolon, Symbol::ParenthesisClose });
+
+			ASTNode id_node;
+			id_node["type"] = ASTNodeType_Identifier;
+			id_node["value"] = identifier;
+
+			ASTNode addition_node;
+			addition_node["type"] = ASTNodeType_BinaryOperation;
+			addition_node["operator"] = expanded_operator;
+			addition_node["lhs"] = id_node;
+			addition_node["rhs"] = rhs;
+
+			ASTNode assignment_node;
+			assignment_node["type"] = ASTNodeType_VariableAssignment;
+			assignment_node["name"] = identifier;
+			assignment_node["value"] = addition_node;
+
+			return assignment_node;
+		}
+
 		ASTNode node;
 		node["type"] = ASTNodeType_Identifier;
 		node["value"] = identifier;
@@ -358,7 +399,8 @@ namespace yosen::parser
 	{
 		if (is_stop_symbol(current_token, stop_symbols))
 		{
-			throw "Expected an expression";
+			// Empty expression
+			return ASTNode();
 		}
 
 		//
@@ -737,7 +779,7 @@ namespace yosen::parser
 		// End of the condition expression
 		expect(Symbol::ParenthesisClose);
 
-		// List of all statements in the "if" statement's body
+		// List of all statements in the loop's body
 		json11::Json::array loop_body_statements;
 
 		// Start processing body statements
@@ -755,6 +797,50 @@ namespace yosen::parser
 		result["type"] = ASTNodeType_WhileLoop;
 		result["condition"] = condition;
 		result["body"] = loop_body_statements;
+
+		return result;
+	}
+	
+	ASTNode Parser::parse_for_loop()
+	{
+		expect(Keyword::For);
+
+		// Beginning of a for loop conditions
+		expect(Symbol::ParenthesisOpen);
+
+		// Parse the initial statement
+		auto init_statement = parse_statement();
+
+		// Parse the condition expression
+		auto condition = parse_expression({ Symbol::Semicolon });
+		expect(Symbol::Semicolon);
+
+		// Parse the expression that will be executed after each iteration
+		auto post_iteration_statement = parse_expression({ Symbol::ParenthesisClose });
+
+		// End of for loop conditions
+		expect(Symbol::ParenthesisClose);
+
+		// List of all statements in the loop's body
+		json11::Json::array loop_body_statements;
+
+		// Start processing body statements
+		expect(Symbol::BraceOpen);
+		while (!is_symbol(current_token, Symbol::BraceClose))
+		{
+			auto body_node = parse_statement();
+
+			if (!body_node.empty())
+				loop_body_statements.push_back(body_node);
+		}
+		expect(Symbol::BraceClose);
+
+		ASTNode result;
+		result["type"]			 = ASTNodeType_ForLoop;
+		result["init_statement"] = init_statement;
+		result["condition"]		 = condition;
+		result["post_iteration"] = post_iteration_statement;
+		result["body"]			 = loop_body_statements;
 
 		return result;
 	}

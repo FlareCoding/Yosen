@@ -326,6 +326,9 @@ namespace yosen
         else if (type._Equal(parser::ASTNodeType_WhileLoop))
             compile_while_loop(node_ptr, stack_frame, bytecode);
 
+        else if (type._Equal(parser::ASTNodeType_ForLoop))
+            compile_for_loop(node_ptr, stack_frame, bytecode);
+
         else if (type._Equal(parser::ASTNodeType_BreakStatement))
             compile_break_statement(node_ptr, stack_frame, bytecode);
     }
@@ -814,6 +817,58 @@ namespace yosen
         {
             compile_statement(&statement, stack_frame, bytecode);
         }
+
+        // After all body statements finish executing,
+        // jump back to the condition expression.
+        bytecode.push_back(opcodes::JMP);
+        bytecode.push_back(static_cast<opcodes::opcode_t>(condition_instruction_index));
+
+        // First instruction that is not part of the loop
+        auto next_instruction_index = bytecode.size();
+
+        // Fix all jmp instruction operands
+        for (auto& op_idx : loop_break_jmp_operand_indices.top())
+            bytecode[op_idx] = static_cast<opcodes::opcode_t>(next_instruction_index);
+
+        // Pop the loop off the loop stack
+        loop_break_jmp_operand_indices.pop();
+    }
+
+    void YosenCompiler::compile_for_loop(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        auto& node = *node_ptr;
+        auto init_statement = node["init_statement"];
+        auto condition_expression = node["condition"];
+        auto post_iteration_statement = node["post_iteration"];
+
+        // Compile the initial statement
+        compile_statement(&init_statement, stack_frame, bytecode);
+
+        // Get the instruction index of the condition (start of the loop)
+        auto condition_instruction_index = bytecode.size();
+
+        // Push to the loop stack
+        loop_break_jmp_operand_indices.push({});
+
+        // Compile the condition
+        compile_expression(&condition_expression, stack_frame, bytecode);
+
+        // If the condition is false, then jump out of the loop
+        bytecode.push_back(opcodes::JMP_IF_FALSE);
+
+        loop_break_jmp_operand_indices.top().push_back(bytecode.size());
+        bytecode.push_back(0x0); // dummy address, will get replaced later
+
+        // Compile the loop body
+        auto& loop_body = node["body"];
+
+        for (auto statement : loop_body.array_items())
+        {
+            compile_statement(&statement, stack_frame, bytecode);
+        }
+
+        // At the end of each iteration, the post iteration statement has to be called
+        compile_statement(&post_iteration_statement, stack_frame, bytecode);
 
         // After all body statements finish executing,
         // jump back to the condition expression.
