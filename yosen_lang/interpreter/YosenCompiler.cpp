@@ -35,6 +35,10 @@ namespace yosen
 
         switch (type)
         {
+        case parser::LiteralType::Null:
+        {
+            return YosenObject_Null->clone();
+        }
         case parser::LiteralType::Boolean:
         {
             bool bval = (value._Equal("true"));
@@ -47,6 +51,10 @@ namespace yosen
         case parser::LiteralType::Integer:
         {
             return allocate_object<YosenInteger>(static_cast<uint64_t>(std::stoi(value)));
+        }
+        case parser::LiteralType::Float:
+        {
+            return allocate_object<YosenFloat>(std::stod(value));
         }
         default: throw "Unknown type";
         }

@@ -19,6 +19,9 @@ namespace yosen
 		YosenObject_Null = allocate_object<YosenObject>();
 		YosenObject_Null->m_string_repr = "null";
 
+		// Initialize macro functions such as "typeof()"
+		s_env_instance->initialize_macro_functions();
+
 		// Initialize casting to primitive types
 		s_env_instance->initialize_primitive_casting_functions();
 
@@ -204,6 +207,29 @@ namespace yosen
 			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
 
 			return YosenObject_Null->clone();
+		});
+	}
+	
+	void YosenEnvironment::initialize_macro_functions()
+	{
+		register_static_native_function("typeof", [](YosenObject* args) -> YosenObject* {
+			YosenObject* arg_object = nullptr;
+			arg_parse(args, "o", &arg_object);
+
+			if (!arg_object)
+				return YosenObject_Null->clone();
+
+			return allocate_object<YosenString>(arg_object->runtime_name());
+		});
+
+		register_static_native_function("instanceof", [](YosenObject* args) -> YosenObject* {
+			YosenObject* arg_object = nullptr;
+			arg_parse(args, "o", &arg_object);
+
+			if (!arg_object)
+				return YosenObject_Null->clone();
+
+			return allocate_object<YosenString>(arg_object->instance_info());
 		});
 	}
 }

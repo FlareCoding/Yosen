@@ -7,6 +7,7 @@ set(
     ${cwd}/YosenObject.h
     ${cwd}/YosenBoolean.h
     ${cwd}/YosenInteger.h
+    ${cwd}/YosenFloat.h
     ${cwd}/YosenString.h
     ${cwd}/YosenTuple.h
     ${cwd}/YosenList.h
@@ -21,6 +22,7 @@ set(
     ${cwd}/YosenObject.cpp
     ${cwd}/YosenBoolean.cpp
     ${cwd}/YosenInteger.cpp
+    ${cwd}/YosenFloat.cpp
     ${cwd}/YosenString.cpp
     ${cwd}/YosenTuple.cpp
     ${cwd}/YosenList.cpp

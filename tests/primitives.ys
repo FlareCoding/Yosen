@@ -1,0 +1,28 @@
+import stdio;
+
+func dbg_info(obj) {
+	io::println("Type      : " + typeof(obj));
+	io::println("Instance  : " + instanceof(obj));
+	io::println("ToString  : " + obj);
+	io::println("-----------");
+}
+
+func main()
+{
+	io::println("-----------");
+
+	var x = "test";
+	dbg_info(x);
+
+	x = null;
+	dbg_info(x);
+
+	x = true;
+	dbg_info(x);
+
+	x = 4554;
+	dbg_info(x);
+
+	x = 17.37;
+	dbg_info(x);
+}

@@ -5,4 +5,5 @@ add_custom_target(tests
         main.ys
         conditionals.ys
         loops.ys
+        primitives.ys
 )
