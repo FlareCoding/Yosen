@@ -4,4 +4,5 @@ add_custom_target(tests
     SOURCES
         main.ys
         conditionals.ys
+        loops.ys
 )

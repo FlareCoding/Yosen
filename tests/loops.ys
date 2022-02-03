@@ -1,0 +1,26 @@
+import stdio;
+
+func main()
+{
+    var x = 0;
+
+    while (x < 5) {
+        x = x + 1;
+        io::println("x: " + x);
+
+        if (x == 3) {
+            break;
+        }
+    }
+
+    io::println("");
+   
+    for (var i = 0; i < 3; i += 1) {
+        io::println("i: " + i);
+    }
+
+    for (i = 10; i > 6; i -= 2) {
+        i += 1;
+        io::println("i: " + i);
+    }
+}

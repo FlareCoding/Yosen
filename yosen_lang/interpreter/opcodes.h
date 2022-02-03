@@ -27,6 +27,10 @@ namespace yosen
 		// 2nd Operand: flag that specifies whether a function has an owner object, 0x00 if a static function.
 		constexpr opcode_t CALL			= 0x60;
 
+		// Immediately returns from the function by moving the instruction pointer to the end.
+		// No operands
+		constexpr opcode_t RET			= 0x61;
+
 		// Copies the last loaded object onto the stack frame's parameter stack.
 		// No operands
 		constexpr opcode_t PUSH			= 0x81;
@@ -34,6 +38,14 @@ namespace yosen
 		// Pops the last object from the stack frame's parameter stack.
 		// No operands
 		constexpr opcode_t POP			= 0x82;
+
+		// Copies the last loaded object into the special list of objects for binary and boolean operations.
+		// No operands
+		constexpr opcode_t PUSH_OP		= 0x83;
+
+		// Pops the last object from the special list of objects for binary and boolean operations.
+		// No operands
+		constexpr opcode_t POP_OP		= 0x84;
 
 		// Loads the variable from speicified register into the Last Loaded Object pointer.
 		// Operand: index/key of the frame's register.

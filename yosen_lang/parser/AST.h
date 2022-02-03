@@ -18,4 +18,7 @@ namespace yosen::parser
 	constexpr auto ASTNodeType_BinaryOperation		= "binary_operation";
 	constexpr auto ASTNodeType_BooleanOperation		= "boolean_operation";
 	constexpr auto ASTNodeType_Conditional			= "conditional";
+	constexpr auto ASTNodeType_ForLoop				= "for_loop";
+	constexpr auto ASTNodeType_WhileLoop			= "while_loop";
+	constexpr auto ASTNodeType_BreakStatement		= "break_statement";
 }
