@@ -25,4 +25,7 @@ func main()
 
 	x = 17.37;
 	dbg_info(x);
+
+	x = [4, null, 6, "check", 56.2, false];
+	dbg_info(x);
 }

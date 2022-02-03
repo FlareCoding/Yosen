@@ -11,6 +11,7 @@ namespace yosen::parser
 		String,
 		Char,
 		Boolean,
+		List,
 		Pointer
 	};
 
