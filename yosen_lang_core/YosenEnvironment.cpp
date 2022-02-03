@@ -194,19 +194,116 @@ namespace yosen
 			{
 				return allocate_object<YosenInteger>(static_cast<YosenInteger*>(arg_object)->value);
 			}
+			else if (strcmp(arg_type, "Float") == 0)
+			{
+				return allocate_object<YosenInteger>((int64_t)static_cast<YosenFloat*>(arg_object)->value);
+			}
 			else if (strcmp(arg_type, "String") == 0)
 			{
-				return allocate_object<YosenInteger>((int64_t)std::stoi(static_cast<YosenString*>(arg_object)->value));
+				int64_t val = 0;
+				try {
+					val = (int64_t)std::stoi(static_cast<YosenString*>(arg_object)->value);
+				}
+				catch (...) {
+					return YosenObject_Null->clone();
+				}
+
+				return allocate_object<YosenInteger>(val);
 			}
 			else if (strcmp(arg_type, "Boolean") == 0)
 			{
 				return allocate_object<YosenInteger>((int64_t)static_cast<YosenBoolean*>(arg_object)->value);
 			}
 
-			auto ex_reason = std::string("Cannot cast ") + arg_type + " to Integer";
-			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return YosenObject_Null->clone();
+		});
+
+		register_static_native_function("float", [](YosenObject* args) -> YosenObject* {
+			YosenObject* arg_object = nullptr;
+			arg_parse(args, "o", &arg_object);
+
+			if (!arg_object)
+				return YosenObject_Null->clone();
+
+			auto arg_type = arg_object->runtime_name();
+
+			if (strcmp(arg_type, "Float") == 0)
+			{
+				return allocate_object<YosenFloat>(static_cast<YosenFloat*>(arg_object)->value);
+			}
+			else if (strcmp(arg_type, "Integer") == 0)
+			{
+				return allocate_object<YosenFloat>((double)static_cast<YosenInteger*>(arg_object)->value);
+			}
+			else if (strcmp(arg_type, "String") == 0)
+			{
+				double val = 0;
+				try {
+					val = std::stod(static_cast<YosenString*>(arg_object)->value);
+				}
+				catch (...) {
+					return YosenObject_Null->clone();
+				}
+
+				return allocate_object<YosenFloat>(val);
+			}
+			else if (strcmp(arg_type, "Boolean") == 0)
+			{
+				return allocate_object<YosenFloat>((double)static_cast<YosenBoolean*>(arg_object)->value);
+			}
+			
+			return YosenObject_Null->clone();
+		});
+
+		register_static_native_function("bool", [](YosenObject* args) -> YosenObject* {
+			YosenObject* arg_object = nullptr;
+			arg_parse(args, "o", &arg_object);
+
+			if (!arg_object)
+				return YosenObject_Null->clone();
+
+			auto arg_type = arg_object->runtime_name();
+
+			if (strcmp(arg_type, "Boolean") == 0)
+			{
+				return allocate_object<YosenBoolean>(static_cast<YosenBoolean*>(arg_object)->value);
+			}
+			else if (strcmp(arg_type, "Integer") == 0)
+			{
+				return allocate_object<YosenBoolean>((bool)static_cast<YosenInteger*>(arg_object)->value);
+			}
+			else if (strcmp(arg_type, "Float") == 0)
+			{
+				return allocate_object<YosenBoolean>((bool)static_cast<YosenFloat*>(arg_object)->value);
+			}
+			else if (strcmp(arg_type, "String") == 0)
+			{
+				bool val = false;
+				auto str_val = static_cast<YosenString*>(arg_object)->value;
+
+				if (str_val._Equal("true"))
+					val = true;
+				else if (str_val._Equal("false"))
+					val = false;
+				else
+				{
+					return YosenObject_Null->clone();
+				}
+
+				return allocate_object<YosenFloat>(val);
+			}
 
 			return YosenObject_Null->clone();
+		});
+
+		register_static_native_function("str", [](YosenObject* args) -> YosenObject* {
+			YosenObject* arg_object = nullptr;
+			arg_parse(args, "o", &arg_object);
+
+			if (!arg_object)
+				return YosenObject_Null->clone();
+
+			return allocate_object<YosenString>(arg_object->to_string());
 		});
 	}
 	
