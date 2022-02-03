@@ -1,5 +1,6 @@
 #include "YosenCompiler.h"
 #include "parser/Parser.h"
+#include <sstream>
 #include <iostream>
 
 namespace yosen
@@ -29,12 +30,60 @@ namespace yosen
         return "__anonymous_frame_" + std::to_string(idx);
     }
 
+    static std::vector<std::string> split(const std::string& str, char delim)
+    {
+        std::stringstream ss(str);
+        std::vector<std::string> result;
+
+        while (ss.good())
+        {
+            std::string substr;
+            std::getline(ss, substr, ',');
+            result.push_back(substr);
+        }
+
+        return result;
+    }
+
+    static std::string deduce_literal_type(const std::string& value)
+    {
+        const auto is_integer = [](const std::string& str) -> bool
+        {
+            return std::all_of(str.begin(), str.end(), ::isdigit);
+        };
+
+        const auto is_float = [](const std::string& str) -> bool
+        {
+            std::istringstream iss(str);
+            float f;
+            iss >> std::noskipws >> f;
+            return iss.eof() && !iss.fail();
+        };
+
+        const auto is_boolean = [](const std::string& str) -> bool
+        {
+            return (str == "true") || (str == "false");
+        };
+
+        if (value._Equal("null")) return "null";
+
+        if (is_integer(value))  return "int";
+        if (is_float(value))    return "float";
+        if (is_boolean(value))  return "bool";
+
+        return "string";
+    }
+
     static YosenObject* allocate_literal_object(const std::string& type_str, const std::string& value)
     {
         parser::LiteralType type = parser::LiteralValueToken::type_from_string(type_str);
 
         switch (type)
         {
+        case parser::LiteralType::Null:
+        {
+            return YosenObject_Null->clone();
+        }
         case parser::LiteralType::Boolean:
         {
             bool bval = (value._Equal("true"));
@@ -48,8 +97,39 @@ namespace yosen
         {
             return allocate_object<YosenInteger>(static_cast<uint64_t>(std::stoi(value)));
         }
-        default: throw "Unknown type";
+        case parser::LiteralType::Float:
+        {
+            return allocate_object<YosenFloat>(std::stod(value));
         }
+        case parser::LiteralType::List:
+        {
+            auto element_values = split(value, ',');
+            std::vector<YosenObject*> list_elems;
+
+            try {
+                for (auto& val : element_values)
+                {
+                    auto type = deduce_literal_type(val);
+                    auto obj = allocate_literal_object(type, val);
+                    list_elems.push_back(obj);
+                }
+            }
+            catch (...) {
+                // Free allocated list elements
+                for (auto& allocated_elem : list_elems)
+                    free_object(allocated_elem);
+
+                auto ex_reason = "Failed to instantiate list, make sure all elements are literal values";
+                YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                break;
+            }
+
+            return allocate_object<YosenList>(list_elems);
+        }
+        default: throw "Unknown Literal Type";
+        }
+
+        return YosenObject_Null->clone();
     }
 
     static opcodes::opcode_t opcode_from_binary_operator(const std::string_view& op)
@@ -924,7 +1004,6 @@ namespace yosen
                 auto library_name = node["library"].string_value();
 
                 YosenEnvironment::get().load_yosen_module(library_name);
-                continue;
             }
             else if (node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
             {

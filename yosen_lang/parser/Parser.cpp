@@ -522,6 +522,41 @@ namespace yosen::parser
 
 			expect(TokenType::LiteralValue);
 		}
+		else if (is_symbol(current_token, Symbol::BracketOpen))
+		{
+			// List instantiation
+			expect(Symbol::BracketOpen);
+
+			json11::Json::array list_items;
+
+			while (!is_symbol(current_token, Symbol::BracketClose))
+			{
+				auto elem_node = parse_expression({ Symbol::Comma, Symbol::BracketClose });
+				list_items.push_back(elem_node);
+
+				// If the next token is a closed parenthesis, stop looping,
+				// otherwise expect a comma as a variable separator.
+				if (is_symbol(current_token, Symbol::BracketClose))
+					break;
+
+				expect(Symbol::Comma);
+			}
+
+			expect(Symbol::BracketClose);
+
+			std::string list_init_value;
+			for (auto& item : list_items)
+				if (item["value"] != json11::Json::NUL)
+					list_init_value.append(item["value"].string_value() + ",");
+
+			lhs["type"] = ASTNodeType_Literal;
+			lhs["value_type"] = "list";
+			
+			if (!list_init_value.empty())
+				lhs["value"] = list_init_value.substr(0, list_init_value.size() - 1); // remove last comma
+
+			return lhs;
+		}
 
 		// If stop symbol is found, then return the
 		// left hand side of the expression as the value.

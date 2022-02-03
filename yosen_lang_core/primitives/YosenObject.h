@@ -49,6 +49,9 @@ namespace yosen
 		// Returns the runtime type of the object
 		YOSENAPI virtual const char* runtime_name() const;
 
+		// Returns information about the instance
+		YOSENAPI std::string instance_info() const;
+
 		// Adds a member function to the object
 		YOSENAPI void add_member_native_function(const std::string& name, ys_member_native_fn_t fn);
 

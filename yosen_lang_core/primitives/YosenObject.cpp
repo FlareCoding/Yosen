@@ -4,9 +4,7 @@
 #include <stdarg.h>
 
 // Primitive Types
-#include "YosenTuple.h"
-#include "YosenInteger.h"
-#include "YosenString.h"
+#include <primitives/primitives.h>
 
 // Runtime environment
 #include "YosenEnvironment.h"
@@ -61,6 +59,11 @@ namespace yosen
 	const char* YosenObject::runtime_name() const
 	{
 		return "Object";
+	}
+
+	std::string YosenObject::instance_info() const
+	{
+		return m_string_repr;
 	}
 
 	void YosenObject::add_member_native_function(const std::string& name, ys_member_native_fn_t fn)
@@ -148,6 +151,18 @@ namespace yosen
 				if (strcmp(t_arg->runtime_name(), "Integer") != 0)
 				{
 					throw "Not an Integer";
+					return false;
+				}
+
+				*p_arg = t_arg->value;
+				break;
+			}
+			case 'f': {
+				double* p_arg = va_arg(args, double*);
+				YosenFloat* t_arg = reinterpret_cast<YosenFloat*>(args_tuple->items[i]);
+				if (strcmp(t_arg->runtime_name(), "Float") != 0)
+				{
+					throw "Not a Float";
 					return false;
 				}
 
