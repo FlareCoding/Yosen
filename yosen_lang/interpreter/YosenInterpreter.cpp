@@ -274,12 +274,12 @@ namespace yosen
                 break;
             }
 
-            auto incr = execute_instruction(stack_frame, &bytecode[i], i);
+            auto incr = execute_instruction(stack_frame, &bytecode[i], i, bytecode.size());
             i += incr;
         }
 	}
 
-	size_t YosenInterpreter::execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops, size_t& current_instruction)
+	size_t YosenInterpreter::execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops, size_t& current_instruction, size_t instruction_count)
 	{
         size_t opcount = 1;
         auto op = ops[0];
@@ -367,6 +367,22 @@ namespace yosen
 
             // Pop the last object from the parameter stack
             m_parameter_stacks.top().pop_back();
+            break;
+        }
+        case opcodes::PUSH_OP:
+        {
+            // Copy the last loaded object into the operation objects list
+            m_operation_stack_objects.push_back((*LLOref)->clone());
+            break;
+        }
+        case opcodes::POP_OP:
+        {
+            // Free the object before popping
+            auto& obj = m_operation_stack_objects.back();
+            free_object(obj);
+
+            // Pop the last object from the list of operation objects
+            m_operation_stack_objects.pop_back();
             break;
         }
         case opcodes::ADD:
@@ -519,6 +535,12 @@ namespace yosen
 
             break;
         }
+        case opcodes::RET:
+        {
+            // Move the instruction pointer to the end
+            current_instruction = instruction_count;
+            return 0;
+        }
         case opcodes::CALL:
         {
             auto fn_index = ops[1];
@@ -648,9 +670,8 @@ namespace yosen
 
     void YosenInterpreter::execute_runtime_operator_instruction(RuntimeOperator op)
     {
-        auto& parameter_stack = m_parameter_stacks.top();
-        auto& lhs = parameter_stack.at(parameter_stack.size() - 2);
-        auto& rhs = parameter_stack.at(parameter_stack.size() - 1);
+        auto& lhs = m_operation_stack_objects.at(m_operation_stack_objects.size() - 2);
+        auto& rhs = m_operation_stack_objects.at(m_operation_stack_objects.size() - 1);
 
         // Operation result
         auto result = lhs->call_runtime_operator_function(op, rhs);

@@ -7,7 +7,7 @@ namespace yosen
 	enum class RegisterType
 	{
 		AllocatedObjectRegister = 1, // stores temporary value to be assigned to a loaded object
-		ReturnRegister				 // stores the return value from a function
+		ReturnRegister,				 // stores the return value from a function
 	};
 
 
@@ -68,13 +68,16 @@ namespace yosen
 		// Each stack frame has its own parameter stack to operate with to push variables onto
 		std::stack<std::vector<YosenObject*>> m_parameter_stacks;
 
+		// Objects that are used in the binary and boolean operations
+		std::vector<YosenObject*> m_operation_stack_objects;
+
 		// All allocated stack frames
 		std::vector<StackFramePtr> m_allocated_stack_frames;
 
 	private:
 		// Executes a single instruction that could consist of single or multiple opcodes.
 		// Returns number of opcodes processed.
-		size_t execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops, size_t& current_instruction);
+		size_t execute_instruction(StackFramePtr stack_frame, opcodes::opcode_t* ops, size_t& current_instruction, size_t instruction_count);
 
 		// Used within the interactive shell to parse function declarations
 		std::string read_block_source(const std::string& header, const std::string& tab_space);

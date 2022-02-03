@@ -624,10 +624,7 @@ namespace yosen::parser
 
 			if (!body_node.empty())
 			{
-				if (body_node["type"].string_value()._Equal(ASTNodeType_ReturnStatement))
-					node[ASTNodeType_ReturnStatement] = body_node;
-				else
-					function_body.push_back(body_node);
+				function_body.push_back(body_node);
 			}
 
 			if (is_symbol(current_token, Symbol::BraceClose))

@@ -134,6 +134,16 @@ namespace yosen
                 printf("POP\n");
                 break;
             }
+            case opcodes::PUSH_OP:
+            {
+                printf("PUSH_OP\n");
+                break;
+            }
+            case opcodes::POP_OP:
+            {
+                printf("POP_OP\n");
+                break;
+            }
             case opcodes::ADD:
             {
                 printf("ADD\n");
@@ -197,6 +207,11 @@ namespace yosen
                 it++;
                 auto second_op = *it;
                 printf("CALL 0x%x 0x%x\n", first_op, second_op);
+                break;
+            }
+            case opcodes::RET:
+            {
+                printf("RET\n");
                 break;
             }
             case opcodes::ALLOC_OBJECT:
@@ -302,6 +317,9 @@ namespace yosen
         else if (type._Equal(parser::ASTNodeType_FunctionCall))
             compile_function_call(node_ptr, stack_frame, bytecode);
 
+        else if (type._Equal(parser::ASTNodeType_ReturnStatement))
+            compile_return_statement(node_ptr, stack_frame, bytecode);
+
         else if (type._Equal(parser::ASTNodeType_Conditional))
             compile_conditional(node_ptr, stack_frame, bytecode);
 
@@ -388,23 +406,23 @@ namespace yosen
             auto lhs_node = node["lhs"];
             compile_expression(&lhs_node, stack_frame, bytecode);
 
-            // Push the loaded object onto the parameter stack
-            bytecode.push_back(opcodes::PUSH);
+            // Push the loaded object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP);
 
             // Next compile the right hand side and load it into LLOref object
             auto rhs_node = node["rhs"];
             compile_expression(&rhs_node, stack_frame, bytecode);
 
-            // Push the loaded object onto the parameter stack
-            bytecode.push_back(opcodes::PUSH);
+            // Push the loaded object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP);
 
             // Call the appropriate binary operator
             auto operator_instruction = opcode_from_binary_operator(node["operator"].string_value());
             bytecode.push_back(operator_instruction);
 
-            // Pop the last two objects off the parameter stack
-            bytecode.push_back(opcodes::POP);
-            bytecode.push_back(opcodes::POP);
+            // Pop the last two objects off the operations stack
+            bytecode.push_back(opcodes::POP_OP);
+            bytecode.push_back(opcodes::POP_OP);
         }
         else if (value_node_type._Equal(parser::ASTNodeType_BooleanOperation))
         {
@@ -416,23 +434,23 @@ namespace yosen
             auto lhs_node = node["lhs"];
             compile_expression(&lhs_node, stack_frame, bytecode);
 
-            // Push the loaded object onto the parameter stack
-            bytecode.push_back(opcodes::PUSH);
+            // Push the loaded object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP);
 
             // Next compile the right hand side and load it into LLOref object
             auto rhs_node = node["rhs"];
             compile_expression(&rhs_node, stack_frame, bytecode);
 
-            // Push the loaded object onto the parameter stack
-            bytecode.push_back(opcodes::PUSH);
+            // Push the loaded object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP);
 
             // Call the appropriate binary operator
             auto operator_instruction = opcode_from_boolean_operator(node["operator"].string_value());
             bytecode.push_back(operator_instruction);
 
-            // Pop the last two objects off the parameter stack
-            bytecode.push_back(opcodes::POP);
-            bytecode.push_back(opcodes::POP);
+            // Pop the last two objects off the operations stack
+            bytecode.push_back(opcodes::POP_OP);
+            bytecode.push_back(opcodes::POP_OP);
         }
     }
 
@@ -569,41 +587,20 @@ namespace yosen
             compile_statement(&statement, stack_frame, bytecode);
         }
 
+        //
         // If a user-defined return statement doesn't exist,
         // create an implicit "return null".
-        if (node[parser::ASTNodeType_ReturnStatement] == json11::Json::NUL)
-        {
-            // Load YosenObject_Null
-            bytecode.push_back(opcodes::LOAD);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(0x00));
+        //
+        // Load YosenObject_Null
+        bytecode.push_back(opcodes::LOAD);
+        bytecode.push_back(static_cast<opcodes::opcode_t>(0x00));
 
-            // Store it in the return register
-            bytecode.push_back(opcodes::REG_STORE);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
-        }
-        else
-        {
-            auto return_statement = node[parser::ASTNodeType_ReturnStatement];
-            if (return_statement["value"] == json11::Json::NUL)
-            {
-                // Load YosenObject_Null
-                bytecode.push_back(opcodes::LOAD);
-                bytecode.push_back(static_cast<opcodes::opcode_t>(0x00));
-            }
-            else
-            {
-                auto expression_node = return_statement["value"];
-                compile_expression(&expression_node, stack_frame, bytecode);
-            }
-
-            // Store the result in the return register
-            bytecode.push_back(opcodes::REG_STORE);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
-        }
+        // Store it in the return register
+        bytecode.push_back(opcodes::REG_STORE);
+        bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
 
         // Add the compiled function to the program source object
         program_source.runtime_functions.push_back({ stack_frame, bytecode });
-
 
 #if (YOSEN_INTERPRETER_DEBUG_MODE == 1)
         printf("\n");
@@ -646,6 +643,30 @@ namespace yosen
         // now we need to create bytecode for storing the value into a variable.
         bytecode.push_back(opcodes::STORE);
         bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+    }
+
+    void YosenCompiler::compile_return_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        auto& node = *node_ptr;
+
+        if (node["value"] == json11::Json::NUL)
+        {
+            // Load YosenObject_Null
+            bytecode.push_back(opcodes::LOAD);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(0x00));
+        }
+        else
+        {
+            auto expression_node = node["value"];
+            compile_expression(&expression_node, stack_frame, bytecode);
+        }
+
+        // Store the result in the return register
+        bytecode.push_back(opcodes::REG_STORE);
+        bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
+
+        // Return from the function
+        bytecode.push_back(opcodes::RET);
     }
 
     void YosenCompiler::compile_variable_assignment(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)

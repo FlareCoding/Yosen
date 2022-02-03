@@ -53,6 +53,9 @@ namespace yosen
 		// Compiles a variable declaration AST node
 		void compile_variable_declaration(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Compiles a return statement from an AST node
+		void compile_return_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
+
 		// Compiles a variable assignment AST node
 		void compile_variable_assignment(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
