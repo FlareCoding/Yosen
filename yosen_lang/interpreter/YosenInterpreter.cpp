@@ -586,7 +586,7 @@ namespace yosen
                 {
                     auto& fn = m_env->get_static_runtime_function(fn_name);
 
-                    auto& fn_stack_frame = fn.first;
+                    auto& fn_stack_frame = fn.first->clone();
                     auto& fn_bytecode = fn.second;
 
                     // Setup function's parameters from
@@ -622,6 +622,9 @@ namespace yosen
 
                     // Deallocate the user function's stack frame
                     deallocate_frame(fn_stack_frame);
+
+                    // Destroy the stack frame since it's a clone
+                    destroy_stack_frame(fn_stack_frame);
 
                     // Pop the functions's parameter stack
                     m_parameter_stacks.pop();

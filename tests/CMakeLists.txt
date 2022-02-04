@@ -6,4 +6,5 @@ add_custom_target(tests
         conditionals.ys
         loops.ys
         primitives.ys
+        fibb.ys
 )

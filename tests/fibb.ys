@@ -1,0 +1,24 @@
+import stdio;
+
+func fib(x) {
+	if (x == 0) {
+		return 0;
+	}
+
+	if (x == 1) {
+		return 1;
+	}
+
+	return fib(x - 1) + fib(x - 2);
+}
+
+func main(args)
+{
+	for (var i = 0; i <= 20; i += 1)
+	{
+		var fibNum = fib(i);
+
+		io::print(i);
+		io::println("th fibonacci number is: " + fibNum);
+	}
+}
