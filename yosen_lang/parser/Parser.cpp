@@ -253,7 +253,6 @@ namespace yosen::parser
 		// Get the imported library name
 		auto lib_name = as<IdentifierToken>(current_token)->value;
 		expect(TokenType::Identifier);
-		expect(Symbol::Semicolon);
 
 		ASTNode node;
 		node["type"] = ASTNodeType_Import;
