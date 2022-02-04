@@ -35,6 +35,32 @@ namespace yosen
 
 	void YosenEnvironment::shutdown()
 	{
+		// Free all stack frames from the class builder objects
+		for (auto& builder : m_runtime_class_builder_objects)
+		{
+			// Get all the runtime functions from the builder
+			auto& runtime_functions = builder.second->runtime_functions;
+
+			// Iterate over runtime function objects
+			for (auto& [name, fn] : runtime_functions)
+			{
+				auto& stack_frame = fn.first;
+
+				// Deallocate constants
+				for (auto& [key, obj] : stack_frame->constants)
+					if (obj) free_object(obj);
+
+				stack_frame->constants.clear();
+
+				// Deallocate variables
+				for (auto& [key, obj] : stack_frame->vars)
+					if (obj) free_object(obj);
+
+				stack_frame->vars.clear();
+				stack_frame->params.clear();
+			}
+		}
+
 		free_object(YosenObject_Null);
 	}
 
@@ -144,6 +170,16 @@ namespace yosen
 			printf("Class not found for '%s'\n", name.c_str());
 			return YosenObject_Null->clone();
 		}
+	}
+
+	std::shared_ptr<RuntimeClassBuilder> YosenEnvironment::create_runtime_class_builder(const std::string& name)
+	{
+		auto builder = std::make_shared<RuntimeClassBuilder>();
+		builder->class_name = name;
+
+		m_runtime_class_builder_objects[name] = builder;
+
+		return builder;
 	}
 
 	void YosenEnvironment::start_module_namespace(const std::string& name)

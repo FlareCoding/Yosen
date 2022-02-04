@@ -61,17 +61,36 @@ namespace yosen
 		// Calls the native member function
 		YOSENAPI YosenObject* call_member_native_function(const std::string& name, YosenObject* args);
 
+		// Adds a member function to the object
+		YOSENAPI void add_member_runtime_function(const std::string& name, ys_runtime_function_t fn);
+
+		// Returns whether or not the object has a member function with the given name
+		YOSENAPI bool has_member_runtime_function(const std::string& name);
+
+		// Returns a member runtime function with the given name
+		YOSENAPI ys_runtime_function_t get_member_runtime_function(const std::string& name);
+
 		// Adds a runtime operator function to the object
 		YOSENAPI void add_runtime_operator_function(RuntimeOperator op, ys_runtime_operator_fn_t fn);
 
 		// Calls an appropriate function according to the provided runtime operator
 		YOSENAPI YosenObject* call_runtime_operator_function(RuntimeOperator op, YosenObject* rhs);
 
+		//
+		// The following methods are used for overriding
+		// native functionality with runtime functions.
+		//
+		YOSENAPI void override_runtime_name(const std::string& name) { m_overriden_runtime_name = name; }
+		YOSENAPI void override_to_string_repr(const std::string& repr) { m_string_repr = repr; }
+
 	protected:
 		std::string m_string_repr;
 
 	private:
+		std::string m_overriden_runtime_name;
+
 		std::map<std::string, ys_member_native_fn_t> m_member_native_functions;
+		std::map<std::string, ys_runtime_function_t> m_member_runtime_functions;
 
 		std::map<RuntimeOperator, ys_runtime_operator_fn_t> m_runtime_operator_functions;
 	};

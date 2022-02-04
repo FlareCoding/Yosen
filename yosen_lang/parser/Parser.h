@@ -127,5 +127,8 @@ namespace yosen::parser
 
 		// Parses a for loop
 		ASTNode parse_for_loop();
+
+		// Parses a class declaration
+		ASTNode parse_class_declaration();
 	};
 }

@@ -20,6 +20,8 @@ add_library(
     YosenException.cpp
     StackFrame.h
     StackFrame.cpp
+    RuntimeClassBuilder.h
+    RuntimeClassBuilder.cpp
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE YOSEN_BUILD)

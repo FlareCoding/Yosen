@@ -206,6 +206,9 @@ namespace yosen::parser
 		if (is_keyword(current_token, Keyword::Func))
 			return parse_function_declaration();
 
+		if (is_keyword(current_token, Keyword::Class))
+			return parse_class_declaration();
+
 		return parse_statement();
 	}
 
@@ -391,7 +394,12 @@ namespace yosen::parser
 			return function_call_node;
 		}
 
-		return ASTNode();
+		ASTNode node;
+		node["type"] = ASTNodeType_Identifier;
+		node["value"] = identifier;
+		node["caller"] = parent_object;
+
+		return node;
 	}
 	
 	ASTNode Parser::parse_expression(const std::initializer_list<Symbol>& stop_symbols)
@@ -875,6 +883,47 @@ namespace yosen::parser
 		result["condition"]		 = condition;
 		result["post_iteration"] = post_iteration_statement;
 		result["body"]			 = loop_body_statements;
+
+		return result;
+	}
+	
+	ASTNode Parser::parse_class_declaration()
+	{
+		expect(Keyword::Class);
+
+		// Parse the class name
+		auto class_name = as<IdentifierToken>(expect(TokenType::Identifier))->value;
+
+		// Start processing class body
+		json11::Json::array class_body_nodes;
+
+		expect(Symbol::BraceOpen);
+		while (!is_symbol(current_token, Symbol::BraceClose))
+		{
+			if (current_token->type == TokenType::EOFToken) break;
+
+			// Parse class body node
+			auto node = parse_block();
+			
+			if (!node.empty())
+			{
+				// If it is a static function, name should
+				// be changed be prepended by the class name.
+				if (node["type"].string_value()._Equal(ASTNodeType_FunctionDeclaration) &&
+					node["params"].array_items().size() == 0)
+				{
+					node["name"] = class_name + "::" + node["name"].string_value();
+				}
+
+				class_body_nodes.push_back(node);
+			}
+		}
+		expect(Symbol::BraceClose);
+
+		ASTNode result;
+		result["type"] = ASTNodeType_ClassDeclaration;
+		result["name"] = class_name;
+		result["body"] = class_body_nodes;
 
 		return result;
 	}

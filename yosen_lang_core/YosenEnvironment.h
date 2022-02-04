@@ -1,6 +1,7 @@
 #pragma once
 #include <utils/utils.h>
 #include "StackFrame.h"
+#include "RuntimeClassBuilder.h"
 #include "YosenException.h"
 
 // Primitive Types
@@ -72,6 +73,11 @@ namespace yosen
 		);
 
 		YOSENAPI
+		std::shared_ptr<RuntimeClassBuilder> create_runtime_class_builder(
+			const std::string& name
+		);
+
+		YOSENAPI
 		void start_module_namespace(
 			const std::string& name
 		);
@@ -104,7 +110,9 @@ namespace yosen
 
 		std::map<std::string, ys_static_native_fn_t> m_static_native_functions;
 		std::map<std::string, ys_runtime_function_t> m_static_runtime_functions;
-		std::map<std::string, ys_class_builder_fn_t> m_custom_class_builders;
+		std::map<std::string, ys_class_builder_fn_t> m_custom_class_builders; // builder functions
+
+		std::map<std::string, std::shared_ptr<RuntimeClassBuilder>> m_runtime_class_builder_objects; // builder objects
 
 	private:
 		// List of exception listeners

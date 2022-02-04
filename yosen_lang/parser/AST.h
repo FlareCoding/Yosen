@@ -6,6 +6,7 @@ namespace yosen::parser
 	using ASTNode	= json11::Json::object;
 	using AST		= json11::Json;
 
+	constexpr auto ASTNodeType_ClassDeclaration		= "classs_declaration";
 	constexpr auto ASTNodeType_FunctionDeclaration	= "function_declaration";
 	constexpr auto ASTNodeType_FunctionCall			= "function_call";
 	constexpr auto ASTNodeType_VariableDeclaration	= "variable_declaration";

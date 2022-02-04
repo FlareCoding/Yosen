@@ -74,6 +74,9 @@ namespace yosen
 		// Compiles a break statement from an AST node
 		void compile_break_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Compiles a class declaration from an AST node and registers it in the environment
+		void compile_class_declaration(json11::Json* node_ptr, ProgramSource& program_source);
+
 	private:
 		// In case an exception occurs, the variables
 		// on the stack frame should get freed.

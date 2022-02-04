@@ -572,8 +572,70 @@ namespace yosen
                     // Move the return value into the return register
                     m_registers[RegisterType::ReturnRegister] = return_val;
                 }
+                else if (caller_object->has_member_runtime_function(fn_name))
+                {
+                    auto& fn = caller_object->get_member_runtime_function(fn_name);
+
+                    auto& fn_stack_frame = fn.first->clone();
+                    auto& fn_bytecode = fn.second;
+
+                    // Adjust the param count to account for the "self" object
+                    ++param_count;
+
+                    // Setup function's parameters from
+                    // the current function's parameter stack.
+                    if (fn_stack_frame->params.size())
+                    {
+                        if (fn_stack_frame->params.size() != param_count)
+                        {
+                            auto ex_reason = "member function \"" + fn_name + "\" expected " +
+                                std::to_string(fn_stack_frame->params.size()) +
+                                " arguments, received " + std::to_string(param_count) +
+                                " arguments";
+
+                            // Destroy the stack frame since it's a clone
+                            destroy_stack_frame(fn_stack_frame);
+
+                            // Deallocate the parameter pack object
+                            free_object(param_pack);
+
+                            // Clear the parameter stack
+                            parameter_stack.clear();
+
+                            m_env->throw_exception(RuntimeException(ex_reason));
+                            return 0;
+                        }
+
+                        // Assign the caller object as the first parameter in the param pack (self)
+                        fn_stack_frame->params[0].second = caller_object->clone();
+
+                        for (size_t i = 0; i < param_count - 1; ++i)
+                            fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+                    }
+
+                    // Create an empty parameter stack to be used by the function for future functions
+                    m_parameter_stacks.push({});
+
+                    // Run the user function (return register will automatically be updated
+                    execute_bytecode(fn_stack_frame, fn_bytecode);
+
+                    // Deallocate the user function's stack frame
+                    deallocate_frame(fn_stack_frame);
+
+                    // Destroy the stack frame since it's a clone
+                    destroy_stack_frame(fn_stack_frame);
+
+                    // Pop the functions's parameter stack
+                    m_parameter_stacks.pop();
+                }
                 else
                 {
+                    // Deallocate the parameter pack object
+                    free_object(param_pack);
+
+                    // Clear the parameter stack
+                    parameter_stack.clear();
+
                     auto ex_reason = "Member function \"" + fn_name + "\" not found";
                     m_env->throw_exception(RuntimeException(ex_reason));
                     return 0;
@@ -595,16 +657,19 @@ namespace yosen
                     {
                         if (fn_stack_frame->params.size() != param_count)
                         {
+                            auto ex_reason = "function \"" + fn_name + "\" expected " +
+                                std::to_string(fn_stack_frame->params.size()) +
+                                " arguments, received " + std::to_string(param_count) +
+                                " arguments";
+
+                            // Destroy the stack frame since it's a clone
+                            destroy_stack_frame(fn_stack_frame);
+
                             // Deallocate the parameter pack object
                             free_object(param_pack);
 
                             // Clear the parameter stack
                             parameter_stack.clear();
-
-                            auto ex_reason =    "function \"" + fn_name + "\" expected " +
-                                                std::to_string(fn_stack_frame->params.size()) + 
-                                                " arguments, received " + std::to_string(param_count) + 
-                                                " arguments";
 
                             m_env->throw_exception(RuntimeException(ex_reason));
                             return 0;

@@ -1,0 +1,25 @@
+import stdio;
+
+class Car
+{
+    var speed = 0;
+
+    // Static function
+    func getWheelCount() {
+        return 4;
+    }
+
+    func setSpeed(self, speed) {
+        io::println("test speed: " + speed);
+    }
+};
+
+func main()
+{
+    io::println("----- Testing the Class System -----\n");
+
+    io::println("Wheel count: " + Car::getWheelCount());
+
+    var car = new Car();
+    car.setSpeed(10);
+}

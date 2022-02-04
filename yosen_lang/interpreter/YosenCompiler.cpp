@@ -974,6 +974,42 @@ namespace yosen
         bytecode.push_back(0x0);
     }
 
+    void YosenCompiler::compile_class_declaration(json11::Json* node_ptr, ProgramSource& program_source)
+    {
+        auto& class_node = *node_ptr;
+        auto class_name = class_node["name"].string_value();
+
+        auto class_builder = YosenEnvironment::get().create_runtime_class_builder(class_name);
+
+        for (auto body_node : class_node["body"].array_items())
+        {
+            if (body_node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
+            {
+                auto& params = body_node["params"].array_items();
+                if (params.size())
+                {
+                    // Member function (first argument should always be "self")
+                    ProgramSource source;
+                    auto fn_name = body_node["name"].string_value();
+
+                    // Compile the function into a separate program source object
+                    compile_function_declaration(&body_node, source);
+
+                    // Insert the runtime function into the class builder object
+                    class_builder->runtime_functions[fn_name] = source.runtime_functions[0];
+                }
+                else
+                {
+                    // Static function
+                    compile_function_declaration(&body_node, program_source);
+                }
+            }
+        }
+
+        // Register the class into the environment
+        class_builder->create_runtime_class();
+    }
+
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
     {
         // Deallocate constants
@@ -1008,6 +1044,10 @@ namespace yosen
             else if (node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
             {
                 compile_function_declaration(&node, program_source);
+            }
+            else if (node["type"].string_value()._Equal(parser::ASTNodeType_ClassDeclaration))
+            {
+                compile_class_declaration(&node, program_source);
             }
         }
 
