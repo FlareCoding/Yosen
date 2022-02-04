@@ -56,6 +56,9 @@ namespace yosen
 		// Returns the index of the imported library name,
 		// returns -1 if the name doesn't exist.
 		YOSENAPI size_t get_imported_lib_name_index(const std::string& name);
+
+		// Clones the resources on the stack frame into a new copy
+		YOSENAPI std::shared_ptr<StackFrame> clone();
 	};
 
 	using StackFramePtr = std::shared_ptr<StackFrame>;

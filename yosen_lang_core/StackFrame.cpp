@@ -66,6 +66,43 @@ namespace yosen
 
         return -1;
     }
+
+    std::shared_ptr<StackFrame> StackFrame::clone()
+    {
+        auto new_frame = allocate_stack_frame();
+
+        // Copy the name
+        new_frame->name = this->name;
+
+        // Copy parameters
+        for (auto& param : this->params)
+            new_frame->params.push_back({ param.first, param.second ? param.second->clone() : nullptr });
+
+        // Copy var keys
+        new_frame->var_keys = this->var_keys;
+
+        // Copy variables
+        for (auto& var : this->vars)
+            new_frame->vars[var.first] = var.second->clone();
+
+        // Copy constant keys
+        new_frame->constant_keys = this->constant_keys;
+
+        // Copy constants
+        for (auto& constant : this->constants)
+            new_frame->constants[constant.first] = constant.second->clone();
+
+        // Copy function names
+        new_frame->function_names = this->function_names;
+
+        // Copy class names
+        new_frame->class_names = this->class_names;
+
+        // Copy imported library names
+        new_frame->imported_library_names = this->imported_library_names;
+
+        return new_frame;
+    }
     
     StackFramePtr allocate_stack_frame()
     {
