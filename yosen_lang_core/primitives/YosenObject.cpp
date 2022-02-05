@@ -42,6 +42,12 @@ namespace yosen
 		m_string_repr = std::string("<YosenObject at 0x") + ss.str() + ">";
 	}
 
+	YosenObject::~YosenObject()
+	{
+		for (auto& [name, var_obj] : m_member_variables)
+			free_object(var_obj);
+	}
+
 	YosenObject* YosenObject::clone()
 	{
 		YosenObject* new_obj = allocate_object<YosenObject>();
@@ -52,6 +58,9 @@ namespace yosen
 		new_obj->m_member_native_functions = this->m_member_native_functions;
 		new_obj->m_member_runtime_functions = this->m_member_runtime_functions;
 		new_obj->m_runtime_operator_functions = this->m_runtime_operator_functions;
+
+		for (auto& [name, var_obj] : m_member_variables)
+			new_obj->add_member_variable(name, var_obj->clone());
 
 		return new_obj;
 	}
@@ -109,6 +118,26 @@ namespace yosen
 	ys_runtime_function_t YosenObject::get_member_runtime_function(const std::string& name)
 	{
 		return m_member_runtime_functions.at(name);
+	}
+
+	void YosenObject::add_member_variable(const std::string& name, YosenObject* value)
+	{
+		m_member_variables[name] = value;
+	}
+
+	bool YosenObject::has_member_variable(const std::string& name)
+	{
+		return m_member_variables.find(name) != m_member_variables.end();
+	}
+
+	YosenObject* YosenObject::get_member_variable(const std::string& name)
+	{
+		return m_member_variables[name];
+	}
+
+	YOSENAPI void YosenObject::set_member_variable(const std::string& name, YosenObject* value)
+	{
+		m_member_variables[name] = value;
 	}
 
 	void YosenObject::add_runtime_operator_function(RuntimeOperator op, ys_runtime_operator_fn_t fn)

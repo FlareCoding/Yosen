@@ -36,10 +36,10 @@ namespace yosen
 	void YosenEnvironment::shutdown()
 	{
 		// Free all stack frames from the class builder objects
-		for (auto& builder : m_runtime_class_builder_objects)
+		for (auto& [name, builder] : m_runtime_class_builder_objects)
 		{
 			// Get all the runtime functions from the builder
-			auto& runtime_functions = builder.second->runtime_functions;
+			auto& runtime_functions = builder->runtime_functions;
 
 			// Iterate over runtime function objects
 			for (auto& [name, fn] : runtime_functions)

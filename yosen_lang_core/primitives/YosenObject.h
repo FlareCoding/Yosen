@@ -38,7 +38,7 @@ namespace yosen
 
 	public:
 		YOSENAPI YosenObject();
-		YOSENAPI virtual ~YosenObject() = default;
+		YOSENAPI virtual ~YosenObject();
 
 		// Creates and returns a value copy of the object
 		YOSENAPI virtual YosenObject* clone();
@@ -70,6 +70,18 @@ namespace yosen
 		// Returns a member runtime function with the given name
 		YOSENAPI ys_runtime_function_t get_member_runtime_function(const std::string& name);
 
+		// Adds a member variable to the object
+		YOSENAPI void add_member_variable(const std::string& name, YosenObject* value);
+
+		// Returns whether or not the object has a member variable with the given name
+		YOSENAPI bool has_member_variable(const std::string& name);
+
+		// Returns a member variable with the given name
+		YOSENAPI YosenObject* get_member_variable(const std::string& name);
+
+		// Sets the member variable given the name
+		YOSENAPI void set_member_variable(const std::string& name, YosenObject* value);
+
 		// Adds a runtime operator function to the object
 		YOSENAPI void add_runtime_operator_function(RuntimeOperator op, ys_runtime_operator_fn_t fn);
 
@@ -93,6 +105,8 @@ namespace yosen
 		std::map<std::string, ys_runtime_function_t> m_member_runtime_functions;
 
 		std::map<RuntimeOperator, ys_runtime_operator_fn_t> m_runtime_operator_functions;
+
+		std::map<std::string, YosenObject*> m_member_variables;
 	};
 
 #define MEMBER_FUNCTION(fn) [this](YosenObject* self, YosenObject* args) { return fn(self, args); }

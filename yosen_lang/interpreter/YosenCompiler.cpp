@@ -192,6 +192,18 @@ namespace yosen
                 printf("STORE 0x%x\n", *it);
                 break;
             }
+            case opcodes::LOAD_MEMBER:
+            {
+                it++;
+                printf("LOAD_MEMBER 0x%x\n", *it);
+                break;
+            }
+            case opcodes::STORE_MEMBER:
+            {
+                it++;
+                printf("STORE_MEMBER 0x%x\n", *it);
+                break;
+            }
             case opcodes::REG_LOAD:
             {
                 it++;
@@ -361,21 +373,26 @@ namespace yosen
         auto& node = *node_ptr;
 
         // Get the variable name
-        auto& identifier_value = node["value"].string_value();
+        const auto& identifier_value = node["value"].string_value();
 
+        return get_variable_key(identifier_value, stack_frame);
+    }
+
+    uint32_t YosenCompiler::get_variable_key(const std::string& var, StackFramePtr stack_frame)
+    {
         // Make sure the variable exists
-        if (stack_frame->var_keys.find(identifier_value) == stack_frame->var_keys.end())
+        if (stack_frame->var_keys.find(var) == stack_frame->var_keys.end())
         {
             // Free all compiled resources
             __ys_free_compiled_resources(stack_frame);
 
-            auto ex_reason = "Undefined variable \"" + identifier_value + "\" used";
+            auto ex_reason = "Undefined variable \"" + var + "\" used";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return 0;
         }
 
         // Get the key for the variable in the stack frame
-        auto var_key = stack_frame->var_keys.at(identifier_value);
+        auto var_key = stack_frame->var_keys.at(var);
 
         return var_key;
     }
@@ -450,14 +467,44 @@ namespace yosen
         }
         else if (value_node_type._Equal(parser::ASTNodeType_Identifier))
         {
-            // If the argument is a variable
-            //
-            // Get the value variable key
-            auto value_var_key = get_variable_key(&node, stack_frame);
+            if (!node["caller"].is_null())
+            {
+                auto caller_name = node["caller"].string_value();
+                auto caller_var_key = get_variable_key(caller_name, stack_frame);
+                auto member_var_name = node["value"].string_value();
 
-            // Create bytecode for pushing the variable onto the stack
-            bytecode.push_back(opcodes::LOAD);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(value_var_key));
+                auto member_var_idx = stack_frame->get_member_variable_name_index(member_var_name);
+                if (member_var_idx == -1)
+                {
+                    member_var_idx = stack_frame->member_variable_names.size();
+                    stack_frame->member_variable_names.push_back(member_var_name);
+                }
+
+                // Load caller object
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(caller_var_key));
+
+                // Push the caller object onto the operations stack
+                bytecode.push_back(opcodes::PUSH_OP);
+
+                // Load member variable
+                bytecode.push_back(opcodes::LOAD_MEMBER);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_idx));
+
+                // Pop the caller object off the operations stack
+                bytecode.push_back(opcodes::POP_OP);
+            }
+            else
+            {
+                // If the argument is a variable
+                //
+                // Get the value variable key
+                auto value_var_key = get_variable_key(&node, stack_frame);
+
+                // Create bytecode for loading the variable
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(value_var_key));
+            }
         }
         else if (value_node_type._Equal(parser::ASTNodeType_FunctionCall))
         {
@@ -983,7 +1030,9 @@ namespace yosen
 
         for (auto body_node : class_node["body"].array_items())
         {
-            if (body_node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
+            auto body_node_type = body_node["type"].string_value();
+
+            if (body_node_type._Equal(parser::ASTNodeType_FunctionDeclaration))
             {
                 auto& params = body_node["params"].array_items();
                 if (params.size())
@@ -1003,6 +1052,35 @@ namespace yosen
                     // Static function
                     compile_function_declaration(&body_node, program_source);
                 }
+            }
+            else if (body_node_type._Equal(parser::ASTNodeType_VariableDeclaration))
+            {
+                auto& variable_name = body_node["name"].string_value();
+                auto  value_node = body_node["value"];
+
+                if (!value_node["type"].string_value()._Equal(parser::ASTNodeType_Literal))
+                {
+                    auto ex_reason = "Value of member variable \"" + variable_name + "\" for class \"" + class_name + "\" has to be a literal, not an expression";
+                    YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                    return;
+                }
+
+                // Check if the variable exists
+                if (class_builder->member_variables.find(variable_name) != class_builder->member_variables.end())
+                {
+                    auto ex_reason = "Member variable \"" + variable_name + "\" for class \"" + class_name + "\" already exists";
+                    YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                    return;
+                }
+
+                auto& literal_type = value_node["value_type"].string_value();
+                auto& value_node_literal_value = value_node["value"].string_value();
+
+                // Allocate member variable object
+                auto member_var_obj = allocate_literal_object(literal_type, value_node_literal_value);
+
+                // Create a member variable entry
+                class_builder->member_variables.insert({ variable_name, member_var_obj });
             }
         }
 

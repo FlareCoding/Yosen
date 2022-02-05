@@ -9,9 +9,13 @@ namespace yosen
 			auto instance = allocate_object<YosenObject>();
 			instance->override_runtime_name(class_name);
 
+			// Add member functions
 			for (auto& [name, fn] : runtime_functions)
-				if (!name._Equal("new"))
-					instance->add_member_runtime_function(name, fn);
+				instance->add_member_runtime_function(name, fn);
+
+			// Add member variables
+			for (auto& [name, value] : member_variables)
+				instance->add_member_variable(name, value);
 
 			return instance;
 		});

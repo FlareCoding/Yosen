@@ -22,6 +22,14 @@ namespace yosen
 		// Operand: index/key of the variable in the frame's variable map.
 		constexpr opcode_t STORE		= 0x53;
 
+		// Loads a member variable into the Last Loaded Object pointer.
+		// Operand: index/key of the variable in the frame's variable map.
+		constexpr opcode_t LOAD_MEMBER	= 0x54;
+
+		// Copies the last loaded object into the specified member variable.
+		// Operand: index/key of the variable in the frame's variable map.
+		constexpr opcode_t STORE_MEMBER = 0x55;
+
 		// Calls a function specified by the operands.
 		// 1st Operand: index of the function's name in the frame's functions array.
 		// 2nd Operand: flag that specifies whether a function has an owner object, 0x00 if a static function.

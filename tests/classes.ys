@@ -2,7 +2,7 @@ import stdio;
 
 class Car
 {
-    var speed = 0;
+    var speed = 10;
 
     // Static function
     func getWheelCount() {
@@ -10,7 +10,7 @@ class Car
     }
 
     func setSpeed(self, speed) {
-        io::println("test speed: " + speed);
+        //self.speed = speed;
     }
 };
 
@@ -21,5 +21,9 @@ func main()
     io::println("Wheel count: " + Car::getWheelCount());
 
     var car = new Car();
-    car.setSpeed(10);
+    io::println("Speed: " + car.speed);
+
+    car.setSpeed(45);
+
+    io::println("Speed: " + car.speed);
 }

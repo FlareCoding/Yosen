@@ -59,6 +59,10 @@ namespace yosen
             destroy_stack_frame(stack_frame);
         }
 
+        // Destroy all objects on the operations stack
+        for (auto& obj : m_operation_stack_objects)
+            free_object(obj);
+
         // If the return register is not empty, deallocate the existing object
         if (m_registers[RegisterType::ReturnRegister] != nullptr)
         {
@@ -71,6 +75,13 @@ namespace yosen
         {
             free_object(m_registers[RegisterType::AllocatedObjectRegister]);
             m_registers[RegisterType::AllocatedObjectRegister] = nullptr;
+        }
+
+        // If the return register is not empty, deallocate the existing object
+        if (m_registers[RegisterType::TemporaryObjectRegister] != nullptr)
+        {
+            free_object(m_registers[RegisterType::TemporaryObjectRegister]);
+            m_registers[RegisterType::TemporaryObjectRegister] = nullptr;
         }
 
         // Destroy the entry point argument object if it was used
@@ -321,6 +332,74 @@ namespace yosen
 
             // Assign the new object
             stack_frame->vars[operand] = (*LLOref)->clone();
+
+            // Free the original object
+            free_object(original_object);
+
+            break;
+        }
+        case opcodes::LOAD_MEMBER:
+        {
+            // Operand is the index of the member variable name
+            auto operand = ops[1];
+            opcount = 2;
+
+            // Get member variable name
+            auto var_name = stack_frame->member_variable_names[operand];
+
+            // Get the caller object
+            auto caller_obj = m_operation_stack_objects.back();
+
+            if (!caller_obj->has_member_variable(var_name))
+            {
+                auto ex_reason = "Member variable \"" + var_name + "\" not found";
+                m_env->throw_exception(RuntimeException(ex_reason));
+                return 0;
+            }
+
+            // Get the member variable object
+            auto member_var = caller_obj->get_member_variable(var_name);
+
+            // Store the object in a temporary object register and load it into the LLOref.
+            // Retrieve the original object.
+            auto original_object = m_registers[RegisterType::TemporaryObjectRegister];
+
+            // Copy the object into the correct register
+            m_registers[RegisterType::TemporaryObjectRegister] = member_var->clone();
+
+            // Free the original object
+            if (original_object)
+                free_object(original_object);
+
+            // Load the member object into LLOref
+            LLOref = &m_registers[RegisterType::TemporaryObjectRegister];
+
+            break;
+        }
+        case opcodes::STORE_MEMBER:
+        {
+            // Operand is the index of the member variable name
+            auto operand = ops[1];
+            opcount = 2;
+
+            // Get member variable name
+            auto var_name = stack_frame->member_variable_names[operand];
+
+            // Get the caller object
+            auto caller_obj = m_operation_stack_objects.back();
+
+            if (!caller_obj->has_member_variable(var_name))
+            {
+                auto ex_reason = "Member variable \"" + var_name + "\" not found";
+                m_env->throw_exception(RuntimeException(ex_reason));
+                return 0;
+            }
+
+            // Retrieve the original object
+            auto original_object = caller_obj->get_member_variable(var_name);
+
+            // Set the member variable object
+            caller_obj->set_member_variable(var_name, (*LLOref)->clone());
 
             // Free the original object
             free_object(original_object);
