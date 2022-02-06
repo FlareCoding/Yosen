@@ -3,6 +3,15 @@ import stdio;
 class Car
 {
     var speed = 10;
+    var name = null;
+
+    func Car(self, name) {
+        io::println("Car constructor called!");
+
+        //self.name = name;
+
+        return self;
+    }
 
     // Static function
     func getWheelCount() {
@@ -20,10 +29,11 @@ func main()
 
     io::println("Wheel count: " + Car::getWheelCount());
 
-    var car = new Car();
-    io::println("Speed: " + car.speed);
+    var car = new Car("Mercedes");
+    io::println("Name  : " + car.name);
+    io::println("Speed : " + car.speed);
 
     car.setSpeed(45);
 
-    io::println("Speed: " + car.speed);
+    io::println("Speed : " + car.speed);
 }

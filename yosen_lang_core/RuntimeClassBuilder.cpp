@@ -15,7 +15,7 @@ namespace yosen
 
 			// Add member variables
 			for (auto& [name, value] : member_variables)
-				instance->add_member_variable(name, value);
+				instance->add_member_variable(name, value->clone());
 
 			return instance;
 		});

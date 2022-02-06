@@ -596,6 +596,83 @@ namespace yosen
             // Instantiate the class
             auto instance = m_env->construct_class_instance(class_name, param_pack);
 
+            // In case of a user-defined class, there may be a constructor,
+            // if it exists, call it.
+            if (instance->has_member_runtime_function(class_name))
+            {
+                auto& fn = instance->get_member_runtime_function(class_name);
+
+                auto& fn_stack_frame = fn.first->clone();
+                auto& fn_bytecode = fn.second;
+
+                // Adjust the param count to account for the "self" object
+                ++param_count;
+
+                // Setup function's parameters from
+                // the current function's parameter stack.
+                if (fn_stack_frame->params.size())
+                {
+                    if (fn_stack_frame->params.size() != param_count)
+                    {
+                        auto ex_reason = "Constructor for class \"" + class_name + "\" expected " +
+                            std::to_string(fn_stack_frame->params.size()) +
+                            " arguments, received " + std::to_string(param_count) +
+                            " arguments";
+
+                        // Destroy the stack frame since it's a clone
+                        destroy_stack_frame(fn_stack_frame);
+
+                        // Deallocate the parameter pack object
+                        free_object(param_pack);
+
+                        // Clear the parameter stack
+                        parameter_stack.clear();
+
+                        // Destroy the allocated instance
+                        free_object(instance);
+
+                        m_env->throw_exception(RuntimeException(ex_reason));
+                        return 0;
+                    }
+
+                    // Assign the caller object as the first parameter in the param pack (self)
+                    fn_stack_frame->params[0].second = instance->clone();
+
+                    // Free the original instance object
+                    free_object(instance);
+
+                    for (size_t i = 0; i < param_count - 1; ++i)
+                        fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+                }
+
+                // Create an empty parameter stack to be used by the function for future functions
+                m_parameter_stacks.push({});
+
+                // Run the user function (return register will automatically be updated
+                execute_bytecode(fn_stack_frame, fn_bytecode);
+
+                // Deallocate the user function's stack frame
+                deallocate_frame(fn_stack_frame);
+
+                // Destroy the stack frame since it's a clone
+                destroy_stack_frame(fn_stack_frame);
+
+                // Pop the functions's parameter stack
+                m_parameter_stacks.pop();
+
+                // Replace the current object instance with the one returned by the constructor
+                auto original_return_object = m_registers[RegisterType::ReturnRegister];
+                
+                instance = m_registers[RegisterType::ReturnRegister]->clone();
+
+                // Free the original object in the return register
+                if (original_return_object)
+                {
+                    free_object(original_return_object);
+                    m_registers[RegisterType::ReturnRegister] = nullptr;
+                }
+            }
+
             // Deallocate the parameter pack object
             free_object(param_pack);
 

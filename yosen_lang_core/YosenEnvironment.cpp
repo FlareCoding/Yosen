@@ -38,11 +38,8 @@ namespace yosen
 		// Free all stack frames from the class builder objects
 		for (auto& [name, builder] : m_runtime_class_builder_objects)
 		{
-			// Get all the runtime functions from the builder
-			auto& runtime_functions = builder->runtime_functions;
-
 			// Iterate over runtime function objects
-			for (auto& [name, fn] : runtime_functions)
+			for (auto& [name, fn] : builder->runtime_functions)
 			{
 				auto& stack_frame = fn.first;
 
@@ -59,6 +56,9 @@ namespace yosen
 				stack_frame->vars.clear();
 				stack_frame->params.clear();
 			}
+
+			for (auto& [name, var] : builder->member_variables)
+				free_object(var);
 		}
 
 		free_object(YosenObject_Null);
