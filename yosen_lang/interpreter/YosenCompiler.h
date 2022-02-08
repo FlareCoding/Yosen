@@ -81,6 +81,9 @@ namespace yosen
 		void compile_class_declaration(json11::Json* node_ptr, ProgramSource& program_source);
 
 	private:
+		// Generates bytecode for loading the parent objects of an identifier node
+		void compile_loading_parent_objects(json11::Json* member_node, StackFramePtr stack_frame, bytecode_t& bytecode);
+
 		// In case an exception occurs, the variables
 		// on the stack frame should get freed.
 		void destroy_stack_frame(StackFramePtr stack_frame);

@@ -22,14 +22,6 @@ namespace yosen
         destroy_stack_frame(faulty_stack_frame);
     }
 
-    static std::string get_anonymous_stack_frame_name()
-    {
-        static uint64_t idx = 0;
-        ++idx;
-        
-        return "__anonymous_frame_" + std::to_string(idx);
-    }
-
     static std::vector<std::string> split(const std::string& str, char delim)
     {
         std::stringstream ss(str);
@@ -224,6 +216,16 @@ namespace yosen
             case opcodes::POP:
             {
                 printf("POP\n");
+                break;
+            }
+            case opcodes::PUSH_OP_NO_CLONE:
+            {
+                printf("PUSH_OP_NO_CLONE\n");
+                break;
+            }
+            case opcodes::POP_OP_NO_FREE:
+            {
+                printf("POP_OP_NO_FREE\n");
                 break;
             }
             case opcodes::PUSH_OP:
@@ -467,25 +469,17 @@ namespace yosen
         }
         else if (value_node_type._Equal(parser::ASTNodeType_Identifier))
         {
-            if (!node["caller"].is_null())
+            if (!node["parent"].is_null())
             {
-                auto caller_name = node["caller"].string_value();
-                auto caller_var_key = get_variable_key(caller_name, stack_frame);
-                auto member_var_name = node["value"].string_value();
+                compile_loading_parent_objects(&node, stack_frame, bytecode);
 
-                auto member_var_idx = stack_frame->get_member_variable_name_index(member_var_name);
+                auto var_name = node["value"].string_value();
+                auto member_var_idx = stack_frame->get_member_variable_name_index(var_name);
                 if (member_var_idx == -1)
                 {
                     member_var_idx = stack_frame->member_variable_names.size();
-                    stack_frame->member_variable_names.push_back(member_var_name);
+                    stack_frame->member_variable_names.push_back(var_name);
                 }
-
-                // Load caller object
-                bytecode.push_back(opcodes::LOAD);
-                bytecode.push_back(static_cast<opcodes::opcode_t>(caller_var_key));
-
-                // Push the caller object onto the operations stack
-                bytecode.push_back(opcodes::PUSH_OP);
 
                 // Load member variable
                 bytecode.push_back(opcodes::LOAD_MEMBER);
@@ -616,30 +610,15 @@ namespace yosen
         // Check if there is a caller object
         opcodes::opcode_t has_caller_flag = 0x00;
 
-        if (!node["caller"].is_null())
+        if (!node["parent"].is_null())
         {
-            auto caller_name = node["caller"].string_value();
-
-            // Make sure the variable exists
-            if (stack_frame->var_keys.find(caller_name) == stack_frame->var_keys.end())
-            {
-                // Free all compiled resources
-                __ys_free_compiled_resources(stack_frame);
-
-                auto ex_reason = "Undefined variable \"" + caller_name + "\" used";
-                YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
-                return;
-            }
-
-            // Get the key for the caller object variable in the stack frame
-            auto caller_object = stack_frame->var_keys.at(caller_name);
-
             // Set the caller flag
             has_caller_flag = 0x01;
 
-            // Load the caller object
-            bytecode.push_back(opcodes::LOAD);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(caller_object));
+            compile_loading_parent_objects(&node, stack_frame, bytecode);
+
+            // Pop the last object from the operations stack
+            bytecode.push_back(opcodes::POP_OP);
         }
 
         // Create the bytecode for calling the function
@@ -806,27 +785,47 @@ namespace yosen
         auto& variable_name = node["name"].string_value();
         auto  value_node = node["value"];
 
-        // Make sure the variable exists
-        if (stack_frame->var_keys.find(variable_name) == stack_frame->var_keys.end())
+        if (!node["parent"].is_null())
         {
-            // Free all compiled resources
-            __ys_free_compiled_resources(stack_frame);
+            compile_loading_parent_objects(&node, stack_frame, bytecode);
 
-            auto ex_reason = "Undefined variable \"" + variable_name + "\" used";
-            YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
-            return;
+            auto var_name = node["name"].string_value();
+            auto member_var_idx = stack_frame->get_member_variable_name_index(var_name);
+            if (member_var_idx == -1)
+            {
+                member_var_idx = stack_frame->member_variable_names.size();
+                stack_frame->member_variable_names.push_back(var_name);
+            }
+
+            // Pop the parent object off the operations stack
+            bytecode.push_back(opcodes::POP_OP);
+
+            // Pushes the member object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
+
+            // Compiling the expression and loading its value
+            compile_expression(&value_node, stack_frame, bytecode);
+
+            // Store the loaded value into the member object on the operations stack
+            bytecode.push_back(opcodes::STORE_MEMBER);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_idx));
+
+            // Pop the member object off the operations stack
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
         }
+        else
+        {
+            // Compiling the expression and loading its value
+            compile_expression(&value_node, stack_frame, bytecode);
 
-        // Get the variable key
-        uint32_t var_key = stack_frame->var_keys.at(variable_name);
+            // Get the variable key
+            uint32_t var_key = get_variable_key(variable_name, stack_frame);
 
-        // Compiling the expression and loading its value
-        compile_expression(&value_node, stack_frame, bytecode);
-
-        // At this point, the value object is loaded into LLOref,
-        // now we need to create bytecode for storing the value into a variable.
-        bytecode.push_back(opcodes::STORE);
-        bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+            // At this point, the value object is loaded into LLOref,
+            // now we need to create bytecode for storing the value into a variable.
+            bytecode.push_back(opcodes::STORE);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+        }
     }
 
     void YosenCompiler::compile_class_instantiation(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -1086,6 +1085,72 @@ namespace yosen
 
         // Register the class into the environment
         class_builder->create_runtime_class();
+    }
+
+    void YosenCompiler::compile_loading_parent_objects(json11::Json* member_node, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        // Get the first parent node
+        auto node = (*member_node)["parent"];
+
+        // ------------------------------------
+        //  Find the outermost parent object.
+        // 
+        //  Example:
+        //          tree.m_data.size;
+        // 
+        //  Outermost parent object is "tree".
+        // ------------------------------------
+
+        // Construct a list of all parent
+        // objects from left to right order.
+        std::vector<std::string> parent_nodes; // <Parent, IdentifierValue>
+
+        while (!node.is_null())
+        {
+            auto value = node["value"].string_value();
+            parent_nodes.insert(parent_nodes.begin(), value);
+
+            node = node["parent"];
+        }
+
+        // Iterate over every parent from left to right and load them
+        for (size_t i = 0; i < parent_nodes.size(); ++i)
+        {
+            auto& var_name = parent_nodes.at(i);
+
+            // If it's the first node, then it doesn't have a parent
+            // and must be a valid variable.
+            if (i == 0)
+            {
+                auto var_key = get_variable_key(var_name, stack_frame);
+
+                // Load variable object
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+
+                // Push the parent object onto the operations stack
+                bytecode.push_back(opcodes::PUSH_OP);
+                continue;
+            }
+
+            // Get an existing or create a new member variable index
+            auto member_var_name_idx = stack_frame->get_member_variable_name_index(var_name);
+            if (member_var_name_idx == -1)
+            {
+                member_var_name_idx = stack_frame->member_variable_names.size();
+                stack_frame->member_variable_names.push_back(var_name);
+            }
+
+            // Load member variable
+            bytecode.push_back(opcodes::LOAD_MEMBER);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_name_idx));
+
+            // Pop the parent object off the operations stack
+            bytecode.push_back(opcodes::POP_OP);
+
+            // Push the newly loaded object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP);
+        }
     }
 
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)

@@ -352,7 +352,7 @@ namespace yosen
 
             if (!caller_obj->has_member_variable(var_name))
             {
-                auto ex_reason = "Member variable \"" + var_name + "\" not found";
+                auto ex_reason = "Member variable \"" + var_name + "\" not found for class \"" + caller_obj->runtime_name() + "\"";
                 m_env->throw_exception(RuntimeException(ex_reason));
                 return 0;
             }
@@ -390,7 +390,7 @@ namespace yosen
 
             if (!caller_obj->has_member_variable(var_name))
             {
-                auto ex_reason = "Member variable \"" + var_name + "\" not found";
+                auto ex_reason = "Member variable \"" + var_name + "\" not found for class \"" + caller_obj->runtime_name() + "\"";
                 m_env->throw_exception(RuntimeException(ex_reason));
                 return 0;
             }
@@ -454,12 +454,24 @@ namespace yosen
             m_operation_stack_objects.push_back((*LLOref)->clone());
             break;
         }
+        case opcodes::PUSH_OP_NO_CLONE:
+        {
+            // Moves the last loaded object onto the operation objects list
+            m_operation_stack_objects.push_back(*LLOref);
+            break;
+        }
         case opcodes::POP_OP:
         {
             // Free the object before popping
             auto& obj = m_operation_stack_objects.back();
             free_object(obj);
 
+            // Pop the last object from the list of operation objects
+            m_operation_stack_objects.pop_back();
+            break;
+        }
+        case opcodes::POP_OP_NO_FREE:
+        {
             // Pop the last object from the list of operation objects
             m_operation_stack_objects.pop_back();
             break;

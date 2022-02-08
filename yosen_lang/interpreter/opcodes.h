@@ -55,6 +55,15 @@ namespace yosen
 		// No operands
 		constexpr opcode_t POP_OP		= 0x84;
 
+		// Moves the last loaded object into the special list of objects for binary and boolean operations.
+		// No operands
+		constexpr opcode_t PUSH_OP_NO_CLONE = 0x85;
+
+		// Pops the last object from the special list of objects for binary and boolean operations,
+		// but doesn't free it.
+		// No operands
+		constexpr opcode_t POP_OP_NO_FREE = 0x86;
+
 		// Loads the variable from speicified register into the Last Loaded Object pointer.
 		// Operand: index/key of the frame's register.
 		constexpr opcode_t REG_LOAD		= 0x90;

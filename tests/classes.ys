@@ -7,8 +7,7 @@ class Car
 
     func Car(self, name) {
         io::println("Car constructor called!");
-
-        //self.name = name;
+        self.name = name;
 
         return self;
     }
@@ -19,7 +18,7 @@ class Car
     }
 
     func setSpeed(self, speed) {
-        //self.speed = speed;
+        self.speed = speed;
     }
 };
 
@@ -36,4 +35,11 @@ func main()
     car.setSpeed(45);
 
     io::println("Speed : " + car.speed);
+
+    //
+    // * Tests for the future *
+    //
+    //      1) car.foo.data = 14;
+    //      2) car.foo.log();
+    //
 }

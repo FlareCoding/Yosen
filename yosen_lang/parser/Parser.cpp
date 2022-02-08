@@ -282,11 +282,17 @@ namespace yosen::parser
 		return node;
 	}
 	
-	ASTNode Parser::parse_identifier()
+	ASTNode Parser::parse_identifier(ASTNode parent)
 	{
 		// Get the identifier value
 		auto id_token = expect(TokenType::Identifier);
 		auto identifier = as<IdentifierToken>(id_token)->value;
+
+		ASTNode node;
+		node["type"] = ASTNodeType_Identifier;
+		node["value"] = identifier;
+		if (!parent.empty())
+			node["parent"] = parent;
 
 		// Check for namespace presence
 		while (is_operator(current_token, Operator::Namespace))
@@ -300,11 +306,20 @@ namespace yosen::parser
 
 		// Check for child elements or member functions (i.e obj.item or str.reverse())
 		if (is_symbol(current_token, Symbol::Period))
-			return parse_object_member(identifier);
+		{
+			expect(Symbol::Period);
+			node = parse_identifier(node);
+		}
 
 		// Check if it's a function call
 		if (is_symbol(current_token, Symbol::ParenthesisOpen))
-			return parse_function_call(identifier);
+		{
+			auto function_call_node = parse_function_call(identifier);
+			if (!parent.empty())
+				function_call_node["parent"] = parent;
+
+			return function_call_node;
+		}
 
 		// Check if it's a variable assignment
 		if (is_operator(current_token, Operator::Assignment))
@@ -315,7 +330,6 @@ namespace yosen::parser
 			// Parse the assigned value as an expression
 			auto value = parse_expression({ Symbol::Semicolon });
 
-			ASTNode node;
 			node["type"] = ASTNodeType_VariableAssignment;
 			node["name"] = identifier;
 			node["value"] = value;
@@ -360,44 +374,6 @@ namespace yosen::parser
 
 			return assignment_node;
 		}
-
-		ASTNode node;
-		node["type"] = ASTNodeType_Identifier;
-		node["value"] = identifier;
-
-		return node;
-	}
-
-	ASTNode Parser::parse_object_member(const std::string& parent_object)
-	{
-		expect(Symbol::Period);
-
-		// Get the identifier value
-		auto identifier = as<IdentifierToken>(current_token)->value;
-		expect(TokenType::Identifier);
-
-		// Check for namespace presence
-		while (is_operator(current_token, Operator::Namespace))
-		{
-			expect(Operator::Namespace);
-			identifier.append("::");
-
-			auto next_id_token = expect(TokenType::Identifier);
-			identifier.append(as<IdentifierToken>(next_id_token)->value);
-		}
-
-		// Check if it's a function call
-		if (is_symbol(current_token, Symbol::ParenthesisOpen))
-		{
-			auto function_call_node = parse_function_call(identifier);
-			function_call_node["caller"] = parent_object;
-			return function_call_node;
-		}
-
-		ASTNode node;
-		node["type"] = ASTNodeType_Identifier;
-		node["value"] = identifier;
-		node["caller"] = parent_object;
 
 		return node;
 	}
