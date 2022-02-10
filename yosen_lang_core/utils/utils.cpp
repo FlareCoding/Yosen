@@ -6,6 +6,13 @@
 	#include <Windows.h>
 #else
 	#include <dlfcn.h>
+	#include <signal.h>
+	#include <stdlib.h>
+
+	#ifdef __APPLE__
+		#include <sys/syslimits.h>
+		#include <mach-o/dyld.h>
+	#endif
 #endif
 
 namespace yosen::utils
@@ -16,8 +23,18 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return LoadLibraryA(name.c_str());
+#elif defined(__APPLE__)
+		auto result = dlopen(("lib" + name + ".dylib").c_str(), RTLD_LAZY);
+		if (!result)
+			printf("dlerror(): %s\n", dlerror());
+
+		return result;
 #else
-		return dlopen(name.c_str(), RTLD_LAZY);
+		auto result = dlopen((name + ".so").c_str(), RTLD_LAZY);
+		if (!result)
+			printf("dlerror(): %s\n", dlerror());
+
+		return result;
 #endif
 	}
 	
@@ -45,6 +62,18 @@ namespace yosen::utils
 		char buf[MAX_PATH];
 		GetModuleFileNameA(nullptr, buf, MAX_PATH);
 		return buf;
+#elif defined(__APPLE__)
+		char sym_path[PATH_MAX + 1];
+		char real_path[PATH_MAX + 1];
+		uint32_t size = sizeof(sym_path);
+
+		// Get symbolic path
+		_NSGetExecutablePath(sym_path, &size);
+
+		// Get real path
+		realpath(sym_path, real_path);
+
+		return real_path;
 #else
 		std::string sp;
 		std::ifstream("/proc/self/comm") >> sp;
@@ -128,7 +157,13 @@ namespace yosen::utils
 			return FALSE;
 		}, TRUE);
 #else
-		throw "Not implemented yet";
+		struct sigaction sigIntHandler;
+
+		sigIntHandler.sa_handler = [](int) { s_keyboard_interrupt_handler_ref(); };
+		sigemptyset(&sigIntHandler.sa_mask);
+		sigIntHandler.sa_flags = 0;
+
+		sigaction(SIGINT, &sigIntHandler, NULL);
 #endif
 	}
 }
