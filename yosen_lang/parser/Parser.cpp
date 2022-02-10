@@ -885,7 +885,7 @@ namespace yosen::parser
 			{
 				// If it is a static function, name should
 				// be changed be prepended by the class name.
-				if (node["type"].string_value()._Equal(ASTNodeType_FunctionDeclaration) &&
+				if (node["type"].string_value() == ASTNodeType_FunctionDeclaration &&
 					node["params"].array_items().size() == 0)
 				{
 					node["name"] = class_name + "::" + node["name"].string_value();

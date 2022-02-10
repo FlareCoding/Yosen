@@ -57,7 +57,7 @@ namespace yosen
             return (str == "true") || (str == "false");
         };
 
-        if (value._Equal("null")) return "null";
+        if (value == "null") return "null";
 
         if (is_integer(value))  return "int";
         if (is_float(value))    return "float";
@@ -78,7 +78,7 @@ namespace yosen
         }
         case parser::LiteralType::Boolean:
         {
-            bool bval = (value._Equal("true"));
+            bool bval = (value == "true");
             return allocate_object<YosenBoolean>(bval);
         }
         case parser::LiteralType::String:
@@ -126,23 +126,23 @@ namespace yosen
 
     static opcodes::opcode_t opcode_from_binary_operator(const std::string_view& op)
     {
-        if (op._Equal("+")) return opcodes::ADD;
-        if (op._Equal("-")) return opcodes::SUB;
-        if (op._Equal("*")) return opcodes::MUL;
-        if (op._Equal("/")) return opcodes::DIV;
-        if (op._Equal("%")) return opcodes::MOD;
+        if (op == "+") return opcodes::ADD;
+        if (op == "-") return opcodes::SUB;
+        if (op == "*") return opcodes::MUL;
+        if (op == "/") return opcodes::DIV;
+        if (op == "%") return opcodes::MOD;
 
         return 0;
     }
 
     static opcodes::opcode_t opcode_from_boolean_operator(const std::string_view& op)
     {
-        if (op._Equal("==")) return opcodes::EQU;
-        if (op._Equal("!=")) return opcodes::NOTEQU;
-        if (op._Equal(">")) return opcodes::GREATER;
-        if (op._Equal("<")) return opcodes::LESS;
-        if (op._Equal("||")) return opcodes::OR;
-        if (op._Equal("&&")) return opcodes::AND;
+        if (op == "==") return opcodes::EQU;
+        if (op == "!=") return opcodes::NOTEQU;
+        if (op == ">") return opcodes::GREATER;
+        if (op == "<") return opcodes::LESS;
+        if (op == "||") return opcodes::OR;
+        if (op == "&&") return opcodes::AND;
 
         return 0;
     }
@@ -404,31 +404,31 @@ namespace yosen
         auto& node = *node_ptr;
         auto type = node["type"].string_value();
 
-        if (type._Equal(parser::ASTNodeType_Import))
+        if (type == parser::ASTNodeType_Import)
             compile_import_statement(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_VariableDeclaration))
+        else if (type == parser::ASTNodeType_VariableDeclaration)
             compile_variable_declaration(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_VariableAssignment))
+        else if (type == parser::ASTNodeType_VariableAssignment)
             compile_variable_assignment(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_FunctionCall))
+        else if (type == parser::ASTNodeType_FunctionCall)
             compile_function_call(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_ReturnStatement))
+        else if (type == parser::ASTNodeType_ReturnStatement)
             compile_return_statement(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_Conditional))
+        else if (type == parser::ASTNodeType_Conditional)
             compile_conditional(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_WhileLoop))
+        else if (type == parser::ASTNodeType_WhileLoop)
             compile_while_loop(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_ForLoop))
+        else if (type == parser::ASTNodeType_ForLoop)
             compile_for_loop(node_ptr, stack_frame, bytecode);
 
-        else if (type._Equal(parser::ASTNodeType_BreakStatement))
+        else if (type == parser::ASTNodeType_BreakStatement)
             compile_break_statement(node_ptr, stack_frame, bytecode);
     }
 
@@ -458,7 +458,7 @@ namespace yosen
         auto& value_node_type = node["type"].string_value();
 
         // Determining the value type, expression, literal, or another variable.
-        if (value_node_type._Equal(parser::ASTNodeType_Literal))
+        if (value_node_type == parser::ASTNodeType_Literal)
         {
             // Get the key for the constant in the stack frame
             auto constant_key = get_constant_literal_key(&node, stack_frame);
@@ -467,7 +467,7 @@ namespace yosen
             bytecode.push_back(opcodes::LOAD_CONST);
             bytecode.push_back(static_cast<opcodes::opcode_t>(constant_key));
         }
-        else if (value_node_type._Equal(parser::ASTNodeType_Identifier))
+        else if (value_node_type == parser::ASTNodeType_Identifier)
         {
             if (!node["parent"].is_null())
             {
@@ -500,7 +500,7 @@ namespace yosen
                 bytecode.push_back(static_cast<opcodes::opcode_t>(value_var_key));
             }
         }
-        else if (value_node_type._Equal(parser::ASTNodeType_FunctionCall))
+        else if (value_node_type == parser::ASTNodeType_FunctionCall)
         {
             // If the value is a function call
             //
@@ -511,7 +511,7 @@ namespace yosen
             bytecode.push_back(opcodes::REG_LOAD);
             bytecode.push_back(static_cast<opcodes::opcode_t>(0x02));
         }
-        else if (value_node_type._Equal(parser::ASTNodeType_ClassInstantiation))
+        else if (value_node_type == parser::ASTNodeType_ClassInstantiation)
         {
             // If class instantiation is attempted
             compile_class_instantiation(&node, stack_frame, bytecode);
@@ -520,7 +520,7 @@ namespace yosen
             bytecode.push_back(opcodes::REG_LOAD);
             bytecode.push_back(static_cast<opcodes::opcode_t>(0x01));
         }
-        else if (value_node_type._Equal(parser::ASTNodeType_BinaryOperation))
+        else if (value_node_type == parser::ASTNodeType_BinaryOperation)
         {
             //
             // If the expression is a binary operation (+, -, *, or /)
@@ -548,7 +548,7 @@ namespace yosen
             bytecode.push_back(opcodes::POP_OP);
             bytecode.push_back(opcodes::POP_OP);
         }
-        else if (value_node_type._Equal(parser::ASTNodeType_BooleanOperation))
+        else if (value_node_type == parser::ASTNodeType_BooleanOperation)
         {
             //
             // If the expression is a boolean operation (||, &&, ==, etc.)
@@ -631,7 +631,7 @@ namespace yosen
     {
         auto& node = *node_ptr;
 
-        if (!node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
+        if (node["type"].string_value() != parser::ASTNodeType_FunctionDeclaration)
         {
             throw "Node is not a function declaration";
             return;
@@ -1031,7 +1031,7 @@ namespace yosen
         {
             auto body_node_type = body_node["type"].string_value();
 
-            if (body_node_type._Equal(parser::ASTNodeType_FunctionDeclaration))
+            if (body_node_type == parser::ASTNodeType_FunctionDeclaration)
             {
                 auto& params = body_node["params"].array_items();
                 if (params.size())
@@ -1052,12 +1052,12 @@ namespace yosen
                     compile_function_declaration(&body_node, program_source);
                 }
             }
-            else if (body_node_type._Equal(parser::ASTNodeType_VariableDeclaration))
+            else if (body_node_type == parser::ASTNodeType_VariableDeclaration)
             {
                 auto& variable_name = body_node["name"].string_value();
                 auto  value_node = body_node["value"];
 
-                if (!value_node["type"].string_value()._Equal(parser::ASTNodeType_Literal))
+                if (value_node["type"].string_value() != parser::ASTNodeType_Literal)
                 {
                     auto ex_reason = "Value of member variable \"" + variable_name + "\" for class \"" + class_name + "\" has to be a literal, not an expression";
                     YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
@@ -1177,18 +1177,18 @@ namespace yosen
         auto ast = parser.parse_source(source);
         for (auto node : ast.array_items())
         {
-            if (node["type"].string_value()._Equal(parser::ASTNodeType_Import))
+            if (node["type"].string_value() == parser::ASTNodeType_Import)
             {
                 // Directly import the library
                 auto library_name = node["library"].string_value();
 
                 YosenEnvironment::get().load_yosen_module(library_name);
             }
-            else if (node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
+            else if (node["type"].string_value() == parser::ASTNodeType_FunctionDeclaration)
             {
                 compile_function_declaration(&node, program_source);
             }
-            else if (node["type"].string_value()._Equal(parser::ASTNodeType_ClassDeclaration))
+            else if (node["type"].string_value() == parser::ASTNodeType_ClassDeclaration)
             {
                 compile_class_declaration(&node, program_source);
             }

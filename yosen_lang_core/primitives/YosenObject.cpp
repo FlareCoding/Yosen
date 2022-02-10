@@ -55,7 +55,7 @@ namespace yosen
 	YosenObject* YosenObject::clone()
 	{
 		YosenObject* new_obj = allocate_object<YosenObject>();
-		if (this->m_string_repr._Equal("null"))
+		if (this->m_string_repr == "null")
 			new_obj->m_string_repr = "null";
 
 		new_obj->m_overriden_runtime_name = this->m_overriden_runtime_name;

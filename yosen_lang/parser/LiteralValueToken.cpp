@@ -24,21 +24,19 @@ namespace yosen::parser
         case LiteralType::Char: return "char";
         case LiteralType::Float: return "float";
         case LiteralType::List: return "list";
-        case LiteralType::Pointer: return "ptr";
         default: return "unknown";
         }
     }
     
     LiteralType LiteralValueToken::type_from_string(const std::string& str)
     {
-        if (str._Equal("null")) return LiteralType::Null;
-        if (str._Equal("bool")) return LiteralType::Boolean;
-        if (str._Equal("int")) return LiteralType::Integer;
-        if (str._Equal("string")) return LiteralType::String;
-        if (str._Equal("char")) return LiteralType::Char;
-        if (str._Equal("float")) return LiteralType::Float;
-        if (str._Equal("list")) return LiteralType::List;
-        if (str._Equal("ptr")) return LiteralType::Pointer;
+        if (str == "null") return LiteralType::Null;
+        if (str == "bool") return LiteralType::Boolean;
+        if (str == "int") return LiteralType::Integer;
+        if (str == "string") return LiteralType::String;
+        if (str == "char") return LiteralType::Char;
+        if (str == "float") return LiteralType::Float;
+        if (str == "list") return LiteralType::List;
 
         return LiteralType::Null;
     }
