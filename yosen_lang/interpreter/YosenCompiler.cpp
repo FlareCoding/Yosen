@@ -22,14 +22,6 @@ namespace yosen
         destroy_stack_frame(faulty_stack_frame);
     }
 
-    static std::string get_anonymous_stack_frame_name()
-    {
-        static uint64_t idx = 0;
-        ++idx;
-        
-        return "__anonymous_frame_" + std::to_string(idx);
-    }
-
     static std::vector<std::string> split(const std::string& str, char delim)
     {
         std::stringstream ss(str);
@@ -192,6 +184,18 @@ namespace yosen
                 printf("STORE 0x%x\n", *it);
                 break;
             }
+            case opcodes::LOAD_MEMBER:
+            {
+                it++;
+                printf("LOAD_MEMBER 0x%x\n", *it);
+                break;
+            }
+            case opcodes::STORE_MEMBER:
+            {
+                it++;
+                printf("STORE_MEMBER 0x%x\n", *it);
+                break;
+            }
             case opcodes::REG_LOAD:
             {
                 it++;
@@ -212,6 +216,16 @@ namespace yosen
             case opcodes::POP:
             {
                 printf("POP\n");
+                break;
+            }
+            case opcodes::PUSH_OP_NO_CLONE:
+            {
+                printf("PUSH_OP_NO_CLONE\n");
+                break;
+            }
+            case opcodes::POP_OP_NO_FREE:
+            {
+                printf("POP_OP_NO_FREE\n");
                 break;
             }
             case opcodes::PUSH_OP:
@@ -361,21 +375,26 @@ namespace yosen
         auto& node = *node_ptr;
 
         // Get the variable name
-        auto& identifier_value = node["value"].string_value();
+        const auto& identifier_value = node["value"].string_value();
 
+        return get_variable_key(identifier_value, stack_frame);
+    }
+
+    uint32_t YosenCompiler::get_variable_key(const std::string& var, StackFramePtr stack_frame)
+    {
         // Make sure the variable exists
-        if (stack_frame->var_keys.find(identifier_value) == stack_frame->var_keys.end())
+        if (stack_frame->var_keys.find(var) == stack_frame->var_keys.end())
         {
             // Free all compiled resources
             __ys_free_compiled_resources(stack_frame);
 
-            auto ex_reason = "Undefined variable \"" + identifier_value + "\" used";
+            auto ex_reason = "Undefined variable \"" + var + "\" used";
             YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
             return 0;
         }
 
         // Get the key for the variable in the stack frame
-        auto var_key = stack_frame->var_keys.at(identifier_value);
+        auto var_key = stack_frame->var_keys.at(var);
 
         return var_key;
     }
@@ -450,14 +469,36 @@ namespace yosen
         }
         else if (value_node_type._Equal(parser::ASTNodeType_Identifier))
         {
-            // If the argument is a variable
-            //
-            // Get the value variable key
-            auto value_var_key = get_variable_key(&node, stack_frame);
+            if (!node["parent"].is_null())
+            {
+                compile_loading_parent_objects(&node, stack_frame, bytecode);
 
-            // Create bytecode for pushing the variable onto the stack
-            bytecode.push_back(opcodes::LOAD);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(value_var_key));
+                auto var_name = node["value"].string_value();
+                auto member_var_idx = stack_frame->get_member_variable_name_index(var_name);
+                if (member_var_idx == -1)
+                {
+                    member_var_idx = stack_frame->member_variable_names.size();
+                    stack_frame->member_variable_names.push_back(var_name);
+                }
+
+                // Load member variable
+                bytecode.push_back(opcodes::LOAD_MEMBER);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_idx));
+
+                // Pop the caller object off the operations stack
+                bytecode.push_back(opcodes::POP_OP_NO_FREE);
+            }
+            else
+            {
+                // If the argument is a variable
+                //
+                // Get the value variable key
+                auto value_var_key = get_variable_key(&node, stack_frame);
+
+                // Create bytecode for loading the variable
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(value_var_key));
+            }
         }
         else if (value_node_type._Equal(parser::ASTNodeType_FunctionCall))
         {
@@ -569,30 +610,15 @@ namespace yosen
         // Check if there is a caller object
         opcodes::opcode_t has_caller_flag = 0x00;
 
-        if (!node["caller"].is_null())
+        if (!node["parent"].is_null())
         {
-            auto caller_name = node["caller"].string_value();
-
-            // Make sure the variable exists
-            if (stack_frame->var_keys.find(caller_name) == stack_frame->var_keys.end())
-            {
-                // Free all compiled resources
-                __ys_free_compiled_resources(stack_frame);
-
-                auto ex_reason = "Undefined variable \"" + caller_name + "\" used";
-                YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
-                return;
-            }
-
-            // Get the key for the caller object variable in the stack frame
-            auto caller_object = stack_frame->var_keys.at(caller_name);
-
             // Set the caller flag
             has_caller_flag = 0x01;
 
-            // Load the caller object
-            bytecode.push_back(opcodes::LOAD);
-            bytecode.push_back(static_cast<opcodes::opcode_t>(caller_object));
+            compile_loading_parent_objects(&node, stack_frame, bytecode);
+
+            // Pop the last object from the operations stack
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
         }
 
         // Create the bytecode for calling the function
@@ -759,27 +785,47 @@ namespace yosen
         auto& variable_name = node["name"].string_value();
         auto  value_node = node["value"];
 
-        // Make sure the variable exists
-        if (stack_frame->var_keys.find(variable_name) == stack_frame->var_keys.end())
+        if (!node["parent"].is_null())
         {
-            // Free all compiled resources
-            __ys_free_compiled_resources(stack_frame);
+            compile_loading_parent_objects(&node, stack_frame, bytecode);
 
-            auto ex_reason = "Undefined variable \"" + variable_name + "\" used";
-            YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
-            return;
+            auto var_name = node["name"].string_value();
+            auto member_var_idx = stack_frame->get_member_variable_name_index(var_name);
+            if (member_var_idx == -1)
+            {
+                member_var_idx = stack_frame->member_variable_names.size();
+                stack_frame->member_variable_names.push_back(var_name);
+            }
+
+            // Pop the parent object off the operations stack
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
+
+            // Pushes the member object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
+
+            // Compiling the expression and loading its value
+            compile_expression(&value_node, stack_frame, bytecode);
+
+            // Store the loaded value into the member object on the operations stack
+            bytecode.push_back(opcodes::STORE_MEMBER);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_idx));
+
+            // Pop the member object off the operations stack
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
         }
+        else
+        {
+            // Compiling the expression and loading its value
+            compile_expression(&value_node, stack_frame, bytecode);
 
-        // Get the variable key
-        uint32_t var_key = stack_frame->var_keys.at(variable_name);
+            // Get the variable key
+            uint32_t var_key = get_variable_key(variable_name, stack_frame);
 
-        // Compiling the expression and loading its value
-        compile_expression(&value_node, stack_frame, bytecode);
-
-        // At this point, the value object is loaded into LLOref,
-        // now we need to create bytecode for storing the value into a variable.
-        bytecode.push_back(opcodes::STORE);
-        bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+            // At this point, the value object is loaded into LLOref,
+            // now we need to create bytecode for storing the value into a variable.
+            bytecode.push_back(opcodes::STORE);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+        }
     }
 
     void YosenCompiler::compile_class_instantiation(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -974,6 +1020,139 @@ namespace yosen
         bytecode.push_back(0x0);
     }
 
+    void YosenCompiler::compile_class_declaration(json11::Json* node_ptr, ProgramSource& program_source)
+    {
+        auto& class_node = *node_ptr;
+        auto class_name = class_node["name"].string_value();
+
+        auto class_builder = YosenEnvironment::get().create_runtime_class_builder(class_name);
+
+        for (auto body_node : class_node["body"].array_items())
+        {
+            auto body_node_type = body_node["type"].string_value();
+
+            if (body_node_type._Equal(parser::ASTNodeType_FunctionDeclaration))
+            {
+                auto& params = body_node["params"].array_items();
+                if (params.size())
+                {
+                    // Member function (first argument should always be "self")
+                    ProgramSource source;
+                    auto fn_name = body_node["name"].string_value();
+
+                    // Compile the function into a separate program source object
+                    compile_function_declaration(&body_node, source);
+
+                    // Insert the runtime function into the class builder object
+                    class_builder->runtime_functions[fn_name] = source.runtime_functions[0];
+                }
+                else
+                {
+                    // Static function
+                    compile_function_declaration(&body_node, program_source);
+                }
+            }
+            else if (body_node_type._Equal(parser::ASTNodeType_VariableDeclaration))
+            {
+                auto& variable_name = body_node["name"].string_value();
+                auto  value_node = body_node["value"];
+
+                if (!value_node["type"].string_value()._Equal(parser::ASTNodeType_Literal))
+                {
+                    auto ex_reason = "Value of member variable \"" + variable_name + "\" for class \"" + class_name + "\" has to be a literal, not an expression";
+                    YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                    return;
+                }
+
+                // Check if the variable exists
+                if (class_builder->member_variables.find(variable_name) != class_builder->member_variables.end())
+                {
+                    auto ex_reason = "Member variable \"" + variable_name + "\" for class \"" + class_name + "\" already exists";
+                    YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                    return;
+                }
+
+                auto& literal_type = value_node["value_type"].string_value();
+                auto& value_node_literal_value = value_node["value"].string_value();
+
+                // Allocate member variable object
+                auto member_var_obj = allocate_literal_object(literal_type, value_node_literal_value);
+
+                // Create a member variable entry
+                class_builder->member_variables.insert({ variable_name, member_var_obj });
+            }
+        }
+
+        // Register the class into the environment
+        class_builder->create_runtime_class();
+    }
+
+    void YosenCompiler::compile_loading_parent_objects(json11::Json* member_node, StackFramePtr stack_frame, bytecode_t& bytecode)
+    {
+        // Get the first parent node
+        auto node = (*member_node)["parent"];
+
+        // ------------------------------------
+        //  Find the outermost parent object.
+        // 
+        //  Example:
+        //          tree.m_data.size;
+        // 
+        //  Outermost parent object is "tree".
+        // ------------------------------------
+
+        // Construct a list of all parent
+        // objects from left to right order.
+        std::vector<std::string> parent_nodes; // <Parent, IdentifierValue>
+
+        while (!node.is_null())
+        {
+            auto value = node["value"].string_value();
+            parent_nodes.insert(parent_nodes.begin(), value);
+
+            node = node["parent"];
+        }
+
+        // Iterate over every parent from left to right and load them
+        for (size_t i = 0; i < parent_nodes.size(); ++i)
+        {
+            auto& var_name = parent_nodes.at(i);
+
+            // If it's the first node, then it doesn't have a parent
+            // and must be a valid variable.
+            if (i == 0)
+            {
+                auto var_key = get_variable_key(var_name, stack_frame);
+
+                // Load variable object
+                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
+
+                // Push the parent object onto the operations stack
+                bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
+                continue;
+            }
+
+            // Get an existing or create a new member variable index
+            auto member_var_name_idx = stack_frame->get_member_variable_name_index(var_name);
+            if (member_var_name_idx == -1)
+            {
+                member_var_name_idx = stack_frame->member_variable_names.size();
+                stack_frame->member_variable_names.push_back(var_name);
+            }
+
+            // Load member variable
+            bytecode.push_back(opcodes::LOAD_MEMBER);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_name_idx));
+
+            // Pop the parent object off the operations stack
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
+
+            // Push the newly loaded object onto the operations stack
+            bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
+        }
+    }
+
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
     {
         // Deallocate constants
@@ -1008,6 +1187,10 @@ namespace yosen
             else if (node["type"].string_value()._Equal(parser::ASTNodeType_FunctionDeclaration))
             {
                 compile_function_declaration(&node, program_source);
+            }
+            else if (node["type"].string_value()._Equal(parser::ASTNodeType_ClassDeclaration))
+            {
+                compile_class_declaration(&node, program_source);
             }
         }
 

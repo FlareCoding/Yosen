@@ -36,6 +36,9 @@ namespace yosen
 		// Names of imported libraries
 		std::vector<std::string> imported_library_names;
 
+		// Names of member variable names
+		std::vector<std::string> member_variable_names;
+
 		// Creates the needed entries for the variable
 		YOSENAPI void add_variable(const std::string& name, YosenObject* obj = nullptr);
 
@@ -56,6 +59,10 @@ namespace yosen
 		// Returns the index of the imported library name,
 		// returns -1 if the name doesn't exist.
 		YOSENAPI size_t get_imported_lib_name_index(const std::string& name);
+
+		// Returns the index of the member variable name,
+		// returns -1 if the name doesn't exist.
+		YOSENAPI size_t get_member_variable_name_index(const std::string& name);
 
 		// Clones the resources on the stack frame into a new copy
 		YOSENAPI std::shared_ptr<StackFrame> clone();

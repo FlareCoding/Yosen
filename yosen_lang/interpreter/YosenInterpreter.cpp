@@ -59,6 +59,10 @@ namespace yosen
             destroy_stack_frame(stack_frame);
         }
 
+        // Destroy all objects on the operations stack
+        for (auto& obj : m_operation_stack_objects)
+            free_object(obj);
+
         // If the return register is not empty, deallocate the existing object
         if (m_registers[RegisterType::ReturnRegister] != nullptr)
         {
@@ -71,6 +75,13 @@ namespace yosen
         {
             free_object(m_registers[RegisterType::AllocatedObjectRegister]);
             m_registers[RegisterType::AllocatedObjectRegister] = nullptr;
+        }
+
+        // If the return register is not empty, deallocate the existing object
+        if (m_registers[RegisterType::TemporaryObjectRegister] != nullptr)
+        {
+            free_object(m_registers[RegisterType::TemporaryObjectRegister]);
+            m_registers[RegisterType::TemporaryObjectRegister] = nullptr;
         }
 
         // Destroy the entry point argument object if it was used
@@ -327,6 +338,74 @@ namespace yosen
 
             break;
         }
+        case opcodes::LOAD_MEMBER:
+        {
+            // Operand is the index of the member variable name
+            auto operand = ops[1];
+            opcount = 2;
+
+            // Get member variable name
+            auto var_name = stack_frame->member_variable_names[operand];
+
+            // Get the caller object
+            auto caller_obj = m_operation_stack_objects.back();
+
+            if (!caller_obj->has_member_variable(var_name))
+            {
+                auto ex_reason = "Member variable \"" + var_name + "\" not found for class \"" + caller_obj->runtime_name() + "\"";
+                m_env->throw_exception(RuntimeException(ex_reason));
+                return 0;
+            }
+
+            // Get the member variable object
+            auto member_var = caller_obj->get_member_variable(var_name);
+
+            // Store the object in a temporary object register and load it into the LLOref.
+            // Retrieve the original object.
+            auto original_object = m_registers[RegisterType::TemporaryObjectRegister];
+
+            // Copy the object into the correct register by reference
+            m_registers[RegisterType::TemporaryObjectRegister] = allocate_object<YosenReference>(member_var);
+
+            // Free the original object
+            if (original_object)
+                free_object(original_object);
+
+            // Load the member object into LLOref
+            LLOref = &static_cast<YosenReference*>(m_registers[RegisterType::TemporaryObjectRegister])->obj;
+
+            break;
+        }
+        case opcodes::STORE_MEMBER:
+        {
+            // Operand is the index of the member variable name
+            auto operand = ops[1];
+            opcount = 2;
+
+            // Get member variable name
+            auto var_name = stack_frame->member_variable_names[operand];
+
+            // Get the caller object
+            auto caller_obj = m_operation_stack_objects.back();
+
+            if (!caller_obj->has_member_variable(var_name))
+            {
+                auto ex_reason = "Member variable \"" + var_name + "\" not found for class \"" + caller_obj->runtime_name() + "\"";
+                m_env->throw_exception(RuntimeException(ex_reason));
+                return 0;
+            }
+
+            // Retrieve the original object
+            auto original_object = caller_obj->get_member_variable(var_name);
+
+            // Set the member variable object
+            caller_obj->set_member_variable(var_name, (*LLOref)->clone());
+
+            // Free the original object
+            free_object(original_object);
+
+            break;
+        }
         case opcodes::REG_LOAD:
         {
             auto operand = ops[1];
@@ -375,12 +454,24 @@ namespace yosen
             m_operation_stack_objects.push_back((*LLOref)->clone());
             break;
         }
+        case opcodes::PUSH_OP_NO_CLONE:
+        {
+            // Moves the last loaded object onto the operation objects list
+            m_operation_stack_objects.push_back(*LLOref);
+            break;
+        }
         case opcodes::POP_OP:
         {
             // Free the object before popping
             auto& obj = m_operation_stack_objects.back();
             free_object(obj);
 
+            // Pop the last object from the list of operation objects
+            m_operation_stack_objects.pop_back();
+            break;
+        }
+        case opcodes::POP_OP_NO_FREE:
+        {
             // Pop the last object from the list of operation objects
             m_operation_stack_objects.pop_back();
             break;
@@ -517,6 +608,71 @@ namespace yosen
             // Instantiate the class
             auto instance = m_env->construct_class_instance(class_name, param_pack);
 
+            // In case of a user-defined class, there may be a constructor,
+            // if it exists, call it.
+            if (instance->has_member_runtime_function(class_name))
+            {
+                auto& fn = instance->get_member_runtime_function(class_name);
+
+                auto& fn_stack_frame = fn.first->clone();
+                auto& fn_bytecode = fn.second;
+
+                // Adjust the param count to account for the "self" object
+                ++param_count;
+
+                // Setup function's parameters from
+                // the current function's parameter stack.
+                if (fn_stack_frame->params.size())
+                {
+                    if (fn_stack_frame->params.size() != param_count)
+                    {
+                        auto ex_reason = "Constructor for class \"" + class_name + "\" expected " +
+                            std::to_string(fn_stack_frame->params.size()) +
+                            " arguments, received " + std::to_string(param_count) +
+                            " arguments";
+
+                        // Destroy the stack frame since it's a clone
+                        destroy_stack_frame(fn_stack_frame);
+
+                        // Deallocate the parameter pack object
+                        free_object(param_pack);
+
+                        // Clear the parameter stack
+                        parameter_stack.clear();
+
+                        // Destroy the allocated instance
+                        free_object(instance);
+
+                        m_env->throw_exception(RuntimeException(ex_reason));
+                        return 0;
+                    }
+
+                    // Assign the caller object as the first parameter in the param pack (self)
+                    fn_stack_frame->params[0].second = allocate_object<YosenReference>(instance);
+
+                    for (size_t i = 0; i < param_count - 1; ++i)
+                        fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+                }
+
+                // Create an empty parameter stack to be used by the function for future functions
+                m_parameter_stacks.push({});
+
+                // Run the user function (return register will automatically be updated
+                execute_bytecode(fn_stack_frame, fn_bytecode);
+
+                // Get the instance object from the reference again
+                instance = static_cast<YosenReference*>(fn_stack_frame->params[0].second)->obj;
+
+                // Deallocate the user function's stack frame
+                deallocate_frame(fn_stack_frame);
+
+                // Destroy the stack frame since it's a clone
+                destroy_stack_frame(fn_stack_frame);
+
+                // Pop the functions's parameter stack
+                m_parameter_stacks.pop();
+            }
+
             // Deallocate the parameter pack object
             free_object(param_pack);
 
@@ -572,8 +728,70 @@ namespace yosen
                     // Move the return value into the return register
                     m_registers[RegisterType::ReturnRegister] = return_val;
                 }
+                else if (caller_object->has_member_runtime_function(fn_name))
+                {
+                    auto& fn = caller_object->get_member_runtime_function(fn_name);
+
+                    auto& fn_stack_frame = fn.first->clone();
+                    auto& fn_bytecode = fn.second;
+
+                    // Adjust the param count to account for the "self" object
+                    ++param_count;
+
+                    // Setup function's parameters from
+                    // the current function's parameter stack.
+                    if (fn_stack_frame->params.size())
+                    {
+                        if (fn_stack_frame->params.size() != param_count)
+                        {
+                            auto ex_reason = "member function \"" + fn_name + "\" expected " +
+                                std::to_string(fn_stack_frame->params.size()) +
+                                " arguments, received " + std::to_string(param_count) +
+                                " arguments";
+
+                            // Destroy the stack frame since it's a clone
+                            destroy_stack_frame(fn_stack_frame);
+
+                            // Deallocate the parameter pack object
+                            free_object(param_pack);
+
+                            // Clear the parameter stack
+                            parameter_stack.clear();
+
+                            m_env->throw_exception(RuntimeException(ex_reason));
+                            return 0;
+                        }
+
+                        // Assign the caller object as the first parameter in the param pack (self)
+                        fn_stack_frame->params[0].second = allocate_object<YosenReference>(caller_object);
+
+                        for (size_t i = 0; i < param_count - 1; ++i)
+                            fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+                    }
+
+                    // Create an empty parameter stack to be used by the function for future functions
+                    m_parameter_stacks.push({});
+
+                    // Run the user function (return register will automatically be updated
+                    execute_bytecode(fn_stack_frame, fn_bytecode);
+
+                    // Deallocate the user function's stack frame
+                    deallocate_frame(fn_stack_frame);
+
+                    // Destroy the stack frame since it's a clone
+                    destroy_stack_frame(fn_stack_frame);
+
+                    // Pop the functions's parameter stack
+                    m_parameter_stacks.pop();
+                }
                 else
                 {
+                    // Deallocate the parameter pack object
+                    free_object(param_pack);
+
+                    // Clear the parameter stack
+                    parameter_stack.clear();
+
                     auto ex_reason = "Member function \"" + fn_name + "\" not found";
                     m_env->throw_exception(RuntimeException(ex_reason));
                     return 0;
@@ -595,16 +813,19 @@ namespace yosen
                     {
                         if (fn_stack_frame->params.size() != param_count)
                         {
+                            auto ex_reason = "function \"" + fn_name + "\" expected " +
+                                std::to_string(fn_stack_frame->params.size()) +
+                                " arguments, received " + std::to_string(param_count) +
+                                " arguments";
+
+                            // Destroy the stack frame since it's a clone
+                            destroy_stack_frame(fn_stack_frame);
+
                             // Deallocate the parameter pack object
                             free_object(param_pack);
 
                             // Clear the parameter stack
                             parameter_stack.clear();
-
-                            auto ex_reason =    "function \"" + fn_name + "\" expected " +
-                                                std::to_string(fn_stack_frame->params.size()) + 
-                                                " arguments, received " + std::to_string(param_count) + 
-                                                " arguments";
 
                             m_env->throw_exception(RuntimeException(ex_reason));
                             return 0;

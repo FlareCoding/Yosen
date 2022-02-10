@@ -21,7 +21,6 @@ namespace yosen
     
     void StackFrame::add_function_name(const std::string& name)
     {
-        // Create a variable key entry for the variable name
         function_names.push_back(name);
     }
     
@@ -67,6 +66,20 @@ namespace yosen
         return -1;
     }
 
+    size_t StackFrame::get_member_variable_name_index(const std::string& name)
+    {
+        auto it = std::find(
+            member_variable_names.begin(),
+            member_variable_names.end(),
+            name
+        );
+
+        if (it != member_variable_names.end())
+            return it - member_variable_names.begin();
+
+        return -1;
+    }
+
     std::shared_ptr<StackFrame> StackFrame::clone()
     {
         auto new_frame = allocate_stack_frame();
@@ -100,6 +113,9 @@ namespace yosen
 
         // Copy imported library names
         new_frame->imported_library_names = this->imported_library_names;
+
+        // Copy member variables
+        new_frame->member_variable_names = this->member_variable_names;
 
         return new_frame;
     }

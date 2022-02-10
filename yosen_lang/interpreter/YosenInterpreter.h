@@ -8,6 +8,7 @@ namespace yosen
 	{
 		AllocatedObjectRegister = 1, // stores temporary value to be assigned to a loaded object
 		ReturnRegister,				 // stores the return value from a function
+		TemporaryObjectRegister,	 // stores temporary objects that will be copied into LLOref
 	};
 
 
@@ -63,6 +64,9 @@ namespace yosen
 
 			// Register to hold the return value of the most recent function
 			{ RegisterType::ReturnRegister, nullptr },
+
+			// Register to hold temporary objects that have to be copied to LLOref
+			{ RegisterType::TemporaryObjectRegister, nullptr }
 		};
 
 		// Each stack frame has its own parameter stack to operate with to push variables onto

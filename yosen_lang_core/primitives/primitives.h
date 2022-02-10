@@ -5,3 +5,4 @@
 #include "YosenString.h"
 #include "YosenTuple.h"
 #include "YosenList.h"
+#include "YosenReference.h"

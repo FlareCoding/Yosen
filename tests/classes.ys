@@ -1,0 +1,60 @@
+import stdio;
+
+class Foo
+{
+    var data = 0;
+
+    func log(self) {
+        io::println("Foo::log - " + self.data);
+    }
+}
+
+class Car
+{
+    var speed = 10;
+    var name = null;
+
+    var foo = null;
+
+    func Car(self, name) {
+        io::println("Car constructor called!");
+        self.name = name;
+
+        self.foo = new Foo();
+
+        return self;
+    }
+
+    // Static function
+    func getWheelCount() {
+        return 4;
+    }
+
+    func setSpeed(self, speed) {
+        self.speed = speed;
+        io::println("Speed changed!");
+    }
+};
+
+func main()
+{
+    io::println("----- Testing the Class System -----\n");
+
+    io::println("Wheel count: " + Car::getWheelCount());
+
+    var car = new Car("Mercedes");
+    io::println("Name  : " + car.name);
+    io::println("Speed : " + car.speed);
+
+    car.setSpeed(45);
+
+    io::println("Speed : " + car.speed);
+
+    io::println("");
+    io::println("car.foo.data - " + car.foo.data);
+    io::println("changing data...");
+    car.foo.data = 14;
+    io::println("car.foo.data - " + car.foo.data);
+
+    car.foo.log();
+}

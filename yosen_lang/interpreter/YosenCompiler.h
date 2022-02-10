@@ -35,6 +35,9 @@ namespace yosen
 		// Returns the key for the variable defined by the AST node
 		uint32_t get_variable_key(json11::Json* node_ptr, StackFramePtr stack_frame);
 
+		// Returns the key for the specified variable
+		uint32_t get_variable_key(const std::string& var, StackFramePtr stack_frame);
+
 		// Compiles a generic statement AST node
 		void compile_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
@@ -74,7 +77,13 @@ namespace yosen
 		// Compiles a break statement from an AST node
 		void compile_break_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Compiles a class declaration from an AST node and registers it in the environment
+		void compile_class_declaration(json11::Json* node_ptr, ProgramSource& program_source);
+
 	private:
+		// Generates bytecode for loading the parent objects of an identifier node
+		void compile_loading_parent_objects(json11::Json* member_node, StackFramePtr stack_frame, bytecode_t& bytecode);
+
 		// In case an exception occurs, the variables
 		// on the stack frame should get freed.
 		void destroy_stack_frame(StackFramePtr stack_frame);

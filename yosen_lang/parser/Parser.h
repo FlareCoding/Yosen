@@ -100,11 +100,7 @@ namespace yosen::parser
 
 		// Parses potential function calls, variable assignments,
 		// or expressions.
-		ASTNode parse_identifier();
-
-		// Parses member variables and member functions,
-		// (i.e obj.item or str.reverse())
-		ASTNode parse_object_member(const std::string& parent_object);
+		ASTNode parse_identifier(ASTNode parent = {});
 
 		// Parses an expression, whether it's a binary operation,
 		// function call, variable, or a literal value.
@@ -127,5 +123,8 @@ namespace yosen::parser
 
 		// Parses a for loop
 		ASTNode parse_for_loop();
+
+		// Parses a class declaration
+		ASTNode parse_class_declaration();
 	};
 }
