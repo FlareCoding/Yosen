@@ -10,8 +10,11 @@
 	#include <stdlib.h>
 
 	#ifdef __APPLE__
-		#include <sys/syslimits.h>
 		#include <mach-o/dyld.h>
+		#include <sys/syslimits.h>
+	#elif defined(__linux__)
+		#include <limits.h>
+		#include <cstring>
 	#endif
 #endif
 
@@ -75,9 +78,11 @@ namespace yosen::utils
 
 		return real_path;
 #else
-		std::string sp;
-		std::ifstream("/proc/self/comm") >> sp;
-		return sp;
+		char buf[PATH_MAX];
+		memset(buf, 0, sizeof(buf));
+
+		readlink("/proc/self/exe", buf, PATH_MAX);
+		return buf;
 #endif
 	}
 
