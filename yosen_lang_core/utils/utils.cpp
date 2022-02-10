@@ -81,7 +81,7 @@ namespace yosen::utils
 #endif
 	}
 
-	static std::string color_to_linux_escape_code(ConsoleColor color)
+	static std::string color_to_ansii_code(ConsoleColor color)
 	{
 		std::string code = "0";
 
@@ -97,7 +97,7 @@ namespace yosen::utils
 		default: break;
 		}
 
-		return "\033[" + code;
+		return code;
 	}
 
 	static unsigned short color_to_windows_code(ConsoleColor color)
@@ -131,8 +131,14 @@ namespace yosen::utils
 		SetConsoleTextAttribute(hConsole, color_to_windows_code(color));
 
 #else
+	#ifdef __APPLE__
+		std::string prefix = "\x1b[";
+	#else
+		std::string prefix = "\033[";
+	#endif
+	
 		// Apply the color modifier to the text
-		auto mod = color_to_linux_escape_code(color);
+		auto mod = prefix + color_to_ansii_code(color) + "m";
 		fmt = mod + fmt + "\033[0m";
 #endif
 
