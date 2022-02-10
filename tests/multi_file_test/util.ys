@@ -1,0 +1,19 @@
+import "logger.ys";
+
+class Util {
+    func print_system_message(logger, msg) {
+        logger.log(msg);
+    }
+
+    func ask_user_name() {
+        var user_name = io::input("Enter your name: ");
+        io::println("Nice to meet you " + user_name + "\n"); 
+    }
+}
+
+func utility_test() {
+    var logger = new Logger();
+
+    Util::ask_user_name();
+    Util::print_system_message(logger, "this is a test");
+}

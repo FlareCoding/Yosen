@@ -1,11 +1,19 @@
 #include "YosenCompiler.h"
 #include "parser/Parser.h"
 #include <sstream>
+#include <fstream>
 #include <iostream>
 
 namespace yosen
 {
+    static bool ends_with(const std::string& value, const std::string& ending)
+    {
+        if (ending.size() > value.size()) return false;
+        return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+    }
+    
     static ProgramSource* s_ProgramSourcePtr = nullptr;
+    static std::string s_CurrentCompilingPath = "";
 
     void YosenCompiler::__ys_free_compiled_resources(StackFramePtr faulty_stack_frame)
     {
@@ -340,6 +348,18 @@ namespace yosen
         }
     }
 
+    void YosenCompiler::shutdown()
+    {
+        for (auto& stack_frame : m_allocated_stack_frames)
+        {
+            // Deallocated created resources off the stack frame
+            deallocate_stack_frame(stack_frame);
+
+            // Completely destroy the last resources on the stack frame
+            destroy_stack_frame(stack_frame);
+        }
+    }
+
     uint32_t YosenCompiler::get_constant_literal_key(json11::Json* node_ptr, StackFramePtr stack_frame)
     {
         auto& node = *node_ptr;
@@ -435,21 +455,30 @@ namespace yosen
     void YosenCompiler::compile_import_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
     {
         auto& node = *node_ptr;
-        auto library_name = node["library"].string_value();
+        auto import_name = node["name"].string_value();
 
-        // Get library name index in the list of library names in a stack frame
-        auto library_name_index = stack_frame->get_imported_lib_name_index(library_name);
-
-        // Check if library name has not occured yet
-        if (library_name_index == -1)
+        // Check if imported name is a module/library or another yosen file
+        if (ends_with(import_name, ".ys"))
         {
-            library_name_index = stack_frame->imported_library_names.size();
-            stack_frame->imported_library_names.push_back(library_name);
+            // Import another file
+            compile_imported_yosen_source_file(import_name, s_CurrentCompilingPath);
         }
+        else
+        {
+            // Get library name index in the list of library names in a stack frame
+            auto library_name_index = stack_frame->get_imported_lib_name_index(import_name);
 
-        // Create the bytecode for allocating the object
-        bytecode.push_back(opcodes::IMPORT_LIB);
-        bytecode.push_back(static_cast<opcodes::opcode_t>(library_name_index));
+            // Check if library name has not occured yet
+            if (library_name_index == -1)
+            {
+                library_name_index = stack_frame->imported_library_names.size();
+                stack_frame->imported_library_names.push_back(import_name);
+            }
+
+            // Create the bytecode for allocating the object
+            bytecode.push_back(opcodes::IMPORT_LIB);
+            bytecode.push_back(static_cast<opcodes::opcode_t>(library_name_index));
+        }
     }
 
     void YosenCompiler::compile_expression(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -1034,7 +1063,7 @@ namespace yosen
             if (body_node_type == parser::ASTNodeType_FunctionDeclaration)
             {
                 auto& params = body_node["params"].array_items();
-                if (params.size())
+                if (params.size() && params[0].string_value() == "self")
                 {
                     // Member function (first argument should always be "self")
                     ProgramSource source;
@@ -1153,6 +1182,26 @@ namespace yosen
         }
     }
 
+    void YosenCompiler::deallocate_stack_frame(StackFramePtr stack_frame)
+	{
+		// Deallocate incoming parameters
+        for (auto& [name, obj] : stack_frame->params)
+        {
+            if (obj)
+                free_object(obj);
+
+            obj = nullptr;
+        }
+
+		// Deallocate vars
+		for (auto& [key, obj] : stack_frame->vars)
+		{
+			if (obj) free_object(obj);
+
+			stack_frame->vars[key] = YosenObject_Null->clone();
+		}
+	}
+
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)
     {
         // Deallocate constants
@@ -1169,9 +1218,41 @@ namespace yosen
         stack_frame->params.clear();
     }
 
-    ProgramSource YosenCompiler::compile_source(std::string& source)
+    void YosenCompiler::compile_imported_yosen_source_file(const std::string& import_name, const std::string& current_path)
+    {
+        std::string file_path = current_path + "/" + import_name;
+
+        if (import_name.empty() || !std::filesystem::is_regular_file(file_path))
+        {
+            auto ex_reason = "Can't find imported source file \"" + file_path + "\"";
+            YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+            return;
+        }
+
+        std::ifstream stream(file_path);
+        std::stringstream source_code_buffer;
+        source_code_buffer << stream.rdbuf();
+
+        auto source_code = source_code_buffer.str();
+
+        auto program_source = compile_source(source_code, std::filesystem::path(file_path).parent_path().string());
+
+        // Register all the functions in the yosen environment
+        for (auto& fn : program_source.runtime_functions)
+        {
+            auto& stack_frame = fn.first;
+            m_allocated_stack_frames.push_back(stack_frame);
+            YosenEnvironment::get().register_static_runtime_function(stack_frame->name, fn);
+        }
+
+        // Reset the current compiling path
+        s_CurrentCompilingPath = current_path;
+    }
+
+    ProgramSource YosenCompiler::compile_source(std::string& source, const std::string& source_path)
     {
         ProgramSource program_source;
+        s_CurrentCompilingPath = source_path;
 
         parser::Parser parser;
         auto ast = parser.parse_source(source);
@@ -1180,9 +1261,18 @@ namespace yosen
             if (node["type"].string_value() == parser::ASTNodeType_Import)
             {
                 // Directly import the library
-                auto library_name = node["library"].string_value();
+                auto import_name = node["name"].string_value();
 
-                YosenEnvironment::get().load_yosen_module(library_name);
+                if (ends_with(import_name, ".ys"))
+                {
+                    // Load another yosen file
+                    compile_imported_yosen_source_file(import_name, source_path);
+                }
+                else
+                {
+                    // Load a native library module
+                    YosenEnvironment::get().load_yosen_module(import_name);   
+                }
             }
             else if (node["type"].string_value() == parser::ASTNodeType_FunctionDeclaration)
             {
