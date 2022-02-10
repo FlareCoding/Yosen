@@ -11,7 +11,7 @@ namespace yosen
 			s_env_instance = std::make_unique<YosenEnvironment>();
 		else
 		{
-			throw std::exception("Yosen environment already initialized!");
+			throw "Yosen environment already initialized!";
 			return;
 		}
 
@@ -317,9 +317,9 @@ namespace yosen
 				bool val = false;
 				auto str_val = static_cast<YosenString*>(arg_object)->value;
 
-				if (str_val._Equal("true"))
+				if (str_val == "true")
 					val = true;
-				else if (str_val._Equal("false"))
+				else if (str_val == "false")
 					val = false;
 				else
 				{

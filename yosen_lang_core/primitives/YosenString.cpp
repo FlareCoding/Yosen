@@ -96,7 +96,7 @@ namespace yosen
 		auto left_val = static_cast<YosenString*>(lhs)->value;
 		auto right_val = static_cast<YosenString*>(rhs)->value;
 
-		return allocate_object<YosenBoolean>(left_val._Equal(right_val));
+		return allocate_object<YosenBoolean>(left_val == right_val);
 	}
 	
 	YosenObject* YosenString::operator_notequ(YosenObject* lhs, YosenObject* rhs)
@@ -111,6 +111,6 @@ namespace yosen
 		auto left_val = static_cast<YosenString*>(lhs)->value;
 		auto right_val = static_cast<YosenString*>(rhs)->value;
 
-		return allocate_object<YosenBoolean>(!left_val._Equal(right_val));
+		return allocate_object<YosenBoolean>(left_val != right_val);
 	}
 }

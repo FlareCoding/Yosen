@@ -1,10 +1,18 @@
 #include "utils.h"
 #include <stdarg.h>
+#include <fstream>
 
 #ifdef _WIN32
 	#include <Windows.h>
-#elif defined __linux__
+#else
 	#include <dlfcn.h>
+	#include <signal.h>
+	#include <stdlib.h>
+
+	#ifdef __APPLE__
+		#include <sys/syslimits.h>
+		#include <mach-o/dyld.h>
+	#endif
 #endif
 
 namespace yosen::utils
@@ -15,10 +23,18 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return LoadLibraryA(name.c_str());
-#elif defined __linux__
-		return dlopen(name.c_str(), RTLD_LAZY);
+#elif defined(__APPLE__)
+		auto result = dlopen(("lib" + name + ".dylib").c_str(), RTLD_LAZY);
+		if (!result)
+			printf("dlerror(): %s\n", dlerror());
+
+		return result;
 #else
-		return nullptr;
+		auto result = dlopen((name + ".so").c_str(), RTLD_LAZY);
+		if (!result)
+			printf("dlerror(): %s\n", dlerror());
+
+		return result;
 #endif
 	}
 	
@@ -26,10 +42,8 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return (int)FreeLibrary(static_cast<HMODULE>(lib));
-#elif defined __linux__
-		dlclose(lib);
 #else
-		return -1;
+		return dlclose(lib);
 #endif
 	}
 	
@@ -37,29 +51,37 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return GetProcAddress(static_cast<HMODULE>(lib), proc_name.c_str());
-#elif defined __linux__
-		return dlsym(lib, proc_name.c_str());
 #else
-		return nullptr;
+		return dlsym(lib, proc_name.c_str());
 #endif
 	}
 
 	std::string get_current_executable_path()
 	{
-#if defined(PLATFORM_POSIX) || defined(__linux__)
-		std::string sp;
-		std::ifstream("/proc/self/comm") >> sp;
-		return sp;
-#elif defined(_WIN32)
+#ifdef _WIN32
 		char buf[MAX_PATH];
 		GetModuleFileNameA(nullptr, buf, MAX_PATH);
 		return buf;
+#elif defined(__APPLE__)
+		char sym_path[PATH_MAX + 1];
+		char real_path[PATH_MAX + 1];
+		uint32_t size = sizeof(sym_path);
+
+		// Get symbolic path
+		_NSGetExecutablePath(sym_path, &size);
+
+		// Get real path
+		realpath(sym_path, real_path);
+
+		return real_path;
 #else
-		static_assert(false, "Platform not supported");
+		std::string sp;
+		std::ifstream("/proc/self/comm") >> sp;
+		return sp;
 #endif
 	}
 
-	static std::string color_to_linux_escape_code(ConsoleColor color)
+	static std::string color_to_ansii_code(ConsoleColor color)
 	{
 		std::string code = "0";
 
@@ -75,7 +97,7 @@ namespace yosen::utils
 		default: break;
 		}
 
-		return "\033[" + code;
+		return code;
 	}
 
 	static unsigned short color_to_windows_code(ConsoleColor color)
@@ -109,8 +131,14 @@ namespace yosen::utils
 		SetConsoleTextAttribute(hConsole, color_to_windows_code(color));
 
 #else
+	#ifdef __APPLE__
+		std::string prefix = "\x1b[";
+	#else
+		std::string prefix = "\033[";
+	#endif
+	
 		// Apply the color modifier to the text
-		auto mod = color_to_linux_escape_code(color);
+		auto mod = prefix + color_to_ansii_code(color) + "m";
 		fmt = mod + fmt + "\033[0m";
 #endif
 
@@ -135,7 +163,13 @@ namespace yosen::utils
 			return FALSE;
 		}, TRUE);
 #else
-		throw "Not implemented yet";
+		struct sigaction sigIntHandler;
+
+		sigIntHandler.sa_handler = [](int) { s_keyboard_interrupt_handler_ref(); };
+		sigemptyset(&sigIntHandler.sa_mask);
+		sigIntHandler.sa_flags = 0;
+
+		sigaction(SIGINT, &sigIntHandler, NULL);
 #endif
 	}
 }
