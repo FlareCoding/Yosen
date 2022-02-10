@@ -2,6 +2,7 @@
 #include <YosenCore.h>
 #include <string>
 #include <functional>
+#include <vector>
 #include <map>
 
 //#define PROFILE_OBJECT_ALLOCATION

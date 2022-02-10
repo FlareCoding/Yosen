@@ -121,7 +121,7 @@ namespace yosen
     void YosenInterpreter::run_source(std::string& source, const std::vector<std::string>& cmd_arguments)
     {
         // Compile the source code
-        auto& program_source = m_compiler.compile_source(source);
+        auto program_source = m_compiler.compile_source(source);
 
         // Create an empty parameter stack to be used by the function for future functions
         m_parameter_stacks.push({});
@@ -145,7 +145,7 @@ namespace yosen
         }
 
         // Get the entry point function stack frame
-        auto& [stack_frame, bytecode] = m_env->get_static_runtime_function(entry_point_name);
+        auto [stack_frame, bytecode] = m_env->get_static_runtime_function(entry_point_name);
 
         // Prepare the args parameter value
         if (stack_frame->params.size())
@@ -612,9 +612,9 @@ namespace yosen
             // if it exists, call it.
             if (instance->has_member_runtime_function(class_name))
             {
-                auto& fn = instance->get_member_runtime_function(class_name);
+                auto fn = instance->get_member_runtime_function(class_name);
 
-                auto& fn_stack_frame = fn.first->clone();
+                auto fn_stack_frame = fn.first->clone();
                 auto& fn_bytecode = fn.second;
 
                 // Adjust the param count to account for the "self" object
@@ -730,9 +730,9 @@ namespace yosen
                 }
                 else if (caller_object->has_member_runtime_function(fn_name))
                 {
-                    auto& fn = caller_object->get_member_runtime_function(fn_name);
+                    auto fn = caller_object->get_member_runtime_function(fn_name);
 
-                    auto& fn_stack_frame = fn.first->clone();
+                    auto fn_stack_frame = fn.first->clone();
                     auto& fn_bytecode = fn.second;
 
                     // Adjust the param count to account for the "self" object
@@ -802,9 +802,9 @@ namespace yosen
                 // Check for a user-defined function
                 if (m_env->is_static_runtime_function(fn_name))
                 {
-                    auto& fn = m_env->get_static_runtime_function(fn_name);
+                    auto fn = m_env->get_static_runtime_function(fn_name);
 
-                    auto& fn_stack_frame = fn.first->clone();
+                    auto fn_stack_frame = fn.first->clone();
                     auto& fn_bytecode = fn.second;
 
                     // Setup function's parameters from

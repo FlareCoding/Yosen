@@ -343,7 +343,7 @@ namespace yosen::parser
 			is_operator(current_token, Operator::MultiplicationAssignment) ||
 			is_operator(current_token, Operator::DivisionAssignment))
 		{
-			auto& op_token = as<OperatorToken>(current_token);
+			auto op_token = as<OperatorToken>(current_token);
 			expect(op_token->op);
 
 			auto expanded_operator = "+";
@@ -554,8 +554,8 @@ namespace yosen::parser
 		//
 		if (current_token->type == TokenType::Operator)
 		{
-			auto& op_token = as<OperatorToken>(current_token);
-			auto& op = op_token->op;
+			auto op_token = as<OperatorToken>(current_token);
+			auto op = op_token->op;
 
 			// Make sure the token is either one of binary or boolean operators
 			if (!IsBinaryOperator(op) && !IsBooleanOperator(op))

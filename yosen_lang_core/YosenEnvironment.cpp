@@ -11,7 +11,7 @@ namespace yosen
 			s_env_instance = std::make_unique<YosenEnvironment>();
 		else
 		{
-			throw std::exception("Yosen environment already initialized!");
+			throw "Yosen environment already initialized!";
 			return;
 		}
 

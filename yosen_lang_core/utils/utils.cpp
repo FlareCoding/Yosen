@@ -1,9 +1,10 @@
 #include "utils.h"
 #include <stdarg.h>
+#include <fstream>
 
 #ifdef _WIN32
 	#include <Windows.h>
-#elif defined __linux__
+#else
 	#include <dlfcn.h>
 #endif
 
@@ -15,10 +16,8 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return LoadLibraryA(name.c_str());
-#elif defined __linux__
-		return dlopen(name.c_str(), RTLD_LAZY);
 #else
-		return nullptr;
+		return dlopen(name.c_str(), RTLD_LAZY);
 #endif
 	}
 	
@@ -26,10 +25,8 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return (int)FreeLibrary(static_cast<HMODULE>(lib));
-#elif defined __linux__
-		dlclose(lib);
 #else
-		return -1;
+		return dlclose(lib);
 #endif
 	}
 	
@@ -37,25 +34,21 @@ namespace yosen::utils
 	{
 #ifdef _WIN32
 		return GetProcAddress(static_cast<HMODULE>(lib), proc_name.c_str());
-#elif defined __linux__
-		return dlsym(lib, proc_name.c_str());
 #else
-		return nullptr;
+		return dlsym(lib, proc_name.c_str());
 #endif
 	}
 
 	std::string get_current_executable_path()
 	{
-#if defined(PLATFORM_POSIX) || defined(__linux__)
-		std::string sp;
-		std::ifstream("/proc/self/comm") >> sp;
-		return sp;
-#elif defined(_WIN32)
+#ifdef _WIN32
 		char buf[MAX_PATH];
 		GetModuleFileNameA(nullptr, buf, MAX_PATH);
 		return buf;
 #else
-		static_assert(false, "Platform not supported");
+		std::string sp;
+		std::ifstream("/proc/self/comm") >> sp;
+		return sp;
 #endif
 	}
 
