@@ -40,6 +40,10 @@ namespace yosen
 		ss << std::hex << this_address;
 
 		m_string_repr = std::string("<YosenObject at 0x") + ss.str() + ">";
+
+		add_member_native_function("ref", [this](YosenObject* self, YosenObject* args) -> YosenObject* {
+			return allocate_object<YosenReference>(self);
+		});
 	}
 
 	YosenObject::~YosenObject()

@@ -364,15 +364,15 @@ namespace yosen
             // Retrieve the original object.
             auto original_object = m_registers[RegisterType::TemporaryObjectRegister];
 
-            // Copy the object into the correct register
-            m_registers[RegisterType::TemporaryObjectRegister] = member_var->clone();
+            // Copy the object into the correct register by reference
+            m_registers[RegisterType::TemporaryObjectRegister] = allocate_object<YosenReference>(member_var);
 
             // Free the original object
             if (original_object)
                 free_object(original_object);
 
             // Load the member object into LLOref
-            LLOref = &m_registers[RegisterType::TemporaryObjectRegister];
+            LLOref = &static_cast<YosenReference*>(m_registers[RegisterType::TemporaryObjectRegister])->obj;
 
             break;
         }
@@ -648,10 +648,7 @@ namespace yosen
                     }
 
                     // Assign the caller object as the first parameter in the param pack (self)
-                    fn_stack_frame->params[0].second = instance->clone();
-
-                    // Free the original instance object
-                    free_object(instance);
+                    fn_stack_frame->params[0].second = allocate_object<YosenReference>(instance);
 
                     for (size_t i = 0; i < param_count - 1; ++i)
                         fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
@@ -663,6 +660,9 @@ namespace yosen
                 // Run the user function (return register will automatically be updated
                 execute_bytecode(fn_stack_frame, fn_bytecode);
 
+                // Get the instance object from the reference again
+                instance = static_cast<YosenReference*>(fn_stack_frame->params[0].second)->obj;
+
                 // Deallocate the user function's stack frame
                 deallocate_frame(fn_stack_frame);
 
@@ -671,18 +671,6 @@ namespace yosen
 
                 // Pop the functions's parameter stack
                 m_parameter_stacks.pop();
-
-                // Replace the current object instance with the one returned by the constructor
-                auto original_return_object = m_registers[RegisterType::ReturnRegister];
-                
-                instance = m_registers[RegisterType::ReturnRegister]->clone();
-
-                // Free the original object in the return register
-                if (original_return_object)
-                {
-                    free_object(original_return_object);
-                    m_registers[RegisterType::ReturnRegister] = nullptr;
-                }
             }
 
             // Deallocate the parameter pack object
@@ -775,7 +763,7 @@ namespace yosen
                         }
 
                         // Assign the caller object as the first parameter in the param pack (self)
-                        fn_stack_frame->params[0].second = caller_object->clone();
+                        fn_stack_frame->params[0].second = allocate_object<YosenReference>(caller_object);
 
                         for (size_t i = 0; i < param_count - 1; ++i)
                             fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();

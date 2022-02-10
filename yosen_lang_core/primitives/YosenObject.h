@@ -53,34 +53,34 @@ namespace yosen
 		YOSENAPI std::string instance_info() const;
 
 		// Adds a member function to the object
-		YOSENAPI void add_member_native_function(const std::string& name, ys_member_native_fn_t fn);
+		YOSENAPI virtual void add_member_native_function(const std::string& name, ys_member_native_fn_t fn);
 
 		// Returns whether or not the object has a member function with the given name
-		YOSENAPI bool has_member_native_function(const std::string& name);
+		YOSENAPI virtual bool has_member_native_function(const std::string& name);
 
 		// Calls the native member function
-		YOSENAPI YosenObject* call_member_native_function(const std::string& name, YosenObject* args);
+		YOSENAPI virtual YosenObject* call_member_native_function(const std::string& name, YosenObject* args);
 
 		// Adds a member function to the object
-		YOSENAPI void add_member_runtime_function(const std::string& name, ys_runtime_function_t fn);
+		YOSENAPI virtual void add_member_runtime_function(const std::string& name, ys_runtime_function_t fn);
 
 		// Returns whether or not the object has a member function with the given name
-		YOSENAPI bool has_member_runtime_function(const std::string& name);
+		YOSENAPI virtual bool has_member_runtime_function(const std::string& name);
 
 		// Returns a member runtime function with the given name
-		YOSENAPI ys_runtime_function_t get_member_runtime_function(const std::string& name);
+		YOSENAPI virtual ys_runtime_function_t get_member_runtime_function(const std::string& name);
 
 		// Adds a member variable to the object
-		YOSENAPI void add_member_variable(const std::string& name, YosenObject* value);
+		YOSENAPI virtual void add_member_variable(const std::string& name, YosenObject* value);
 
 		// Returns whether or not the object has a member variable with the given name
-		YOSENAPI bool has_member_variable(const std::string& name);
+		YOSENAPI virtual bool has_member_variable(const std::string& name);
 
 		// Returns a member variable with the given name
-		YOSENAPI YosenObject* get_member_variable(const std::string& name);
+		YOSENAPI virtual YosenObject* get_member_variable(const std::string& name);
 
 		// Sets the member variable given the name
-		YOSENAPI void set_member_variable(const std::string& name, YosenObject* value);
+		YOSENAPI virtual void set_member_variable(const std::string& name, YosenObject* value);
 
 		// Adds a runtime operator function to the object
 		YOSENAPI void add_runtime_operator_function(RuntimeOperator op, ys_runtime_operator_fn_t fn);
@@ -98,7 +98,7 @@ namespace yosen
 	protected:
 		std::string m_string_repr;
 
-	private:
+	protected:
 		std::string m_overriden_runtime_name;
 
 		std::map<std::string, ys_member_native_fn_t> m_member_native_functions;

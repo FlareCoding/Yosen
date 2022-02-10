@@ -486,7 +486,7 @@ namespace yosen
                 bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_idx));
 
                 // Pop the caller object off the operations stack
-                bytecode.push_back(opcodes::POP_OP);
+                bytecode.push_back(opcodes::POP_OP_NO_FREE);
             }
             else
             {
@@ -618,7 +618,7 @@ namespace yosen
             compile_loading_parent_objects(&node, stack_frame, bytecode);
 
             // Pop the last object from the operations stack
-            bytecode.push_back(opcodes::POP_OP);
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
         }
 
         // Create the bytecode for calling the function
@@ -798,7 +798,7 @@ namespace yosen
             }
 
             // Pop the parent object off the operations stack
-            bytecode.push_back(opcodes::POP_OP);
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
 
             // Pushes the member object onto the operations stack
             bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
@@ -1129,7 +1129,7 @@ namespace yosen
                 bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
 
                 // Push the parent object onto the operations stack
-                bytecode.push_back(opcodes::PUSH_OP);
+                bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
                 continue;
             }
 
@@ -1146,10 +1146,10 @@ namespace yosen
             bytecode.push_back(static_cast<opcodes::opcode_t>(member_var_name_idx));
 
             // Pop the parent object off the operations stack
-            bytecode.push_back(opcodes::POP_OP);
+            bytecode.push_back(opcodes::POP_OP_NO_FREE);
 
             // Push the newly loaded object onto the operations stack
-            bytecode.push_back(opcodes::PUSH_OP);
+            bytecode.push_back(opcodes::PUSH_OP_NO_CLONE);
         }
     }
 

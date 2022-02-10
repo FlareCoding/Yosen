@@ -1,13 +1,26 @@
 import stdio;
 
+class Foo
+{
+    var data = 0;
+
+    func log(self) {
+        io::println("Foo::log - " + self.data);
+    }
+}
+
 class Car
 {
     var speed = 10;
     var name = null;
 
+    var foo = null;
+
     func Car(self, name) {
         io::println("Car constructor called!");
         self.name = name;
+
+        self.foo = new Foo();
 
         return self;
     }
@@ -19,6 +32,7 @@ class Car
 
     func setSpeed(self, speed) {
         self.speed = speed;
+        io::println("Speed changed!");
     }
 };
 
@@ -36,10 +50,11 @@ func main()
 
     io::println("Speed : " + car.speed);
 
-    //
-    // * Tests for the future *
-    //
-    //      1) car.foo.data = 14;
-    //      2) car.foo.log();
-    //
+    io::println("");
+    io::println("car.foo.data - " + car.foo.data);
+    io::println("changing data...");
+    car.foo.data = 14;
+    io::println("car.foo.data - " + car.foo.data);
+
+    car.foo.log();
 }
