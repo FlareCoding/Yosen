@@ -1,9 +1,14 @@
 #pragma once
 #include <YosenCore.h>
+#include <memory>
 #include <string>
 #include <functional>
 #include <vector>
 #include <map>
+
+#ifdef __linux__
+	#include <cstring>
+#endif
 
 //#define PROFILE_OBJECT_ALLOCATION
 

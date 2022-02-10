@@ -30,7 +30,7 @@ namespace yosen::utils
 
 		return result;
 #else
-		auto result = dlopen((name + ".so").c_str(), RTLD_LAZY);
+		auto result = dlopen(("./lib" + name + ".so").c_str(), RTLD_LAZY);
 		if (!result)
 			printf("dlerror(): %s\n", dlerror());
 
