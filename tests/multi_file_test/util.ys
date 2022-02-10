@@ -7,7 +7,7 @@ class Util {
 
     func ask_user_name() {
         var user_name = io::input("Enter your name: ");
-        io::println("Nice to meet you " + user_name + "\n"); 
+        io::println("Nice to meet you " + user_name + "!\n"); 
     }
 }
 

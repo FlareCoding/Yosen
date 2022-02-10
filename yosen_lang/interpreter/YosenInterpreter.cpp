@@ -604,6 +604,10 @@ namespace yosen
             // Process parameters
             auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
+
+            // Reverse the param stack
+            std::reverse(parameter_stack.begin(), parameter_stack.end());
+
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
             // Instantiate the class
@@ -708,6 +712,10 @@ namespace yosen
             // Process parameters
             auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
+
+            // Reverse the param stack
+            std::reverse(parameter_stack.begin(), parameter_stack.end());
+
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
             YosenObject* return_val = nullptr;
