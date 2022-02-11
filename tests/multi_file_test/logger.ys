@@ -1,0 +1,15 @@
+import stdio;
+
+class Logger
+{
+    var prefix = "";
+
+    func Logger(self) {
+        io::println("Logger initialized!");
+        self.prefix = "logger::channel1 - "; 
+    }
+
+    func log(self, buf) {
+        io::println(self.prefix + buf);
+    }
+}

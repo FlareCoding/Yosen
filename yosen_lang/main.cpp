@@ -10,9 +10,9 @@ int main(int argc, char** argv)
     std::string source_code = "";
     std::vector<std::string> cmd_arguments;
 
-    if (argc > 2)
+    if (argc > 1)
     {
-        for (int i = 2; i < argc; ++i)
+        for (int i = 1; i < argc; ++i)
             cmd_arguments.push_back(argv[i]);
     }
 

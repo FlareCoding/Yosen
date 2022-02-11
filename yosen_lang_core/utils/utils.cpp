@@ -86,6 +86,11 @@ namespace yosen::utils
 #endif
 	}
 
+	std::string get_current_path()
+	{
+		return std::filesystem::current_path().string();
+	}
+
 	static std::string color_to_ansii_code(ConsoleColor color)
 	{
 		std::string code = "0";

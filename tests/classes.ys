@@ -21,8 +21,6 @@ class Car
         self.name = name;
 
         self.foo = new Foo();
-
-        return self;
     }
 
     // Static function

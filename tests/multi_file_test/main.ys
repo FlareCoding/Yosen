@@ -1,0 +1,7 @@
+import "util.ys";
+
+func main() {
+    io::println("Hello from main()!");
+
+    utility_test();
+}

@@ -253,13 +253,23 @@ namespace yosen::parser
 	{
 		expect(Keyword::Import);
 
+		std::string lib_name = "";
+
 		// Get the imported library name
-		auto lib_name = as<IdentifierToken>(current_token)->value;
-		expect(TokenType::Identifier);
+		if (current_token->type == TokenType::Identifier)
+		{
+			lib_name = as<IdentifierToken>(current_token)->value;
+			expect(TokenType::Identifier);
+		}
+		else
+		{
+			lib_name = as<LiteralValueToken>(current_token)->value;
+			expect(TokenType::LiteralValue);
+		}
 
 		ASTNode node;
 		node["type"] = ASTNodeType_Import;
-		node["library"] = lib_name;
+		node["name"] = lib_name;
 
 		return node;
 	}
@@ -886,7 +896,8 @@ namespace yosen::parser
 				// If it is a static function, name should
 				// be changed be prepended by the class name.
 				if (node["type"].string_value() == ASTNodeType_FunctionDeclaration &&
-					node["params"].array_items().size() == 0)
+					node["params"].array_items().size() == 0 ||
+					(node["params"].array_items().size() && node["params"].array_items().at(0) != "self"))
 				{
 					node["name"] = class_name + "::" + node["name"].string_value();
 				}

@@ -50,6 +50,9 @@ namespace yosen
 	
 	void YosenInterpreter::shutdown()
 	{
+        // Destroy compiler resources
+        m_compiler.shutdown();
+
         for (auto& stack_frame : m_allocated_stack_frames)
         {
             // Deallocated created resources off the stack frame
@@ -121,7 +124,8 @@ namespace yosen
     void YosenInterpreter::run_source(std::string& source, const std::vector<std::string>& cmd_arguments)
     {
         // Compile the source code
-        auto program_source = m_compiler.compile_source(source);
+        auto source_directory = std::filesystem::path(cmd_arguments.at(0)).parent_path().string();
+        auto program_source = m_compiler.compile_source(source, source_directory);
 
         // Create an empty parameter stack to be used by the function for future functions
         m_parameter_stacks.push({});
@@ -151,9 +155,6 @@ namespace yosen
         if (stack_frame->params.size())
         {
             std::vector<YosenObject*> args;
-
-            auto exec_path = allocate_object<YosenString>(utils::get_current_executable_path());
-            args.push_back(exec_path);
 
             for (auto& arg : cmd_arguments)
                 args.push_back(allocate_object<YosenString>(arg));
@@ -603,6 +604,10 @@ namespace yosen
             // Process parameters
             auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
+
+            // Reverse the param stack
+            std::reverse(parameter_stack.begin(), parameter_stack.end());
+
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
             // Instantiate the class
@@ -707,6 +712,10 @@ namespace yosen
             // Process parameters
             auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
+
+            // Reverse the param stack
+            std::reverse(parameter_stack.begin(), parameter_stack.end());
+
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
             YosenObject* return_val = nullptr;

@@ -23,10 +23,13 @@ namespace yosen
 
 		// Compiles a string of source code into
 		// a complete program source object.
-		ProgramSource compile_source(std::string& source);
+		ProgramSource compile_source(std::string& source, const std::string& source_path);
 
 		// Compiles a single statement
 		bytecode_t compile_single_statement(std::string& source, StackFramePtr stack_frame);
+
+		// Frees all compiled resources
+		void shutdown();
 
 	private:
 		// Returns the key for the constant defined by the AST node
@@ -84,6 +87,9 @@ namespace yosen
 		// Generates bytecode for loading the parent objects of an identifier node
 		void compile_loading_parent_objects(json11::Json* member_node, StackFramePtr stack_frame, bytecode_t& bytecode);
 
+		// Frees all objects in the stack frame
+		void deallocate_stack_frame(StackFramePtr stack_frame);
+
 		// In case an exception occurs, the variables
 		// on the stack frame should get freed.
 		void destroy_stack_frame(StackFramePtr stack_frame);
@@ -92,10 +98,17 @@ namespace yosen
 		// stack frames in an event if exception occurs.
 		void __ys_free_compiled_resources(StackFramePtr faulty_stack_frame);
 
+		// Loads a Yosen source file into the running program
+		void compile_imported_yosen_source_file(const std::string& import_name, const std::string& current_path);
+
 	private:
 		// Each loop gets its own list of indices to be replaced.
 		// If a break statement occurs, the instruction pointer should
 		// jump to the end of the loop.
 		std::stack<std::vector<size_t>> loop_break_jmp_operand_indices;
+
+	private:
+		// List of all allocated stack frames that were imported
+		std::vector<StackFramePtr> m_allocated_stack_frames;
 	};
 }

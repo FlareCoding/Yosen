@@ -22,6 +22,7 @@ namespace yosen::utils
 	YOSENAPI void*			get_proc_address(void* lib, const std::string& proc_name);
 
 	YOSENAPI std::string	get_current_executable_path();
+	YOSENAPI std::string 	get_current_path();
 
 	YOSENAPI void			log_colored(ConsoleColor color, std::string fmt, ...);
 
