@@ -23,6 +23,7 @@ namespace yosen::utils
 
 	YOSENAPI std::string	get_current_executable_path();
 	YOSENAPI std::string 	get_current_path();
+	YOSENAPI std::string	get_installation_path();
 
 	YOSENAPI void			log_colored(ConsoleColor color, std::string fmt, ...);
 

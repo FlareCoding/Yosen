@@ -24,16 +24,18 @@ namespace yosen::utils
 
 	void* load_library(const std::string& name)
 	{
+		auto mod_dir = get_installation_path();
+
 #ifdef _WIN32
-		return LoadLibraryA(name.c_str());
+		return LoadLibraryA((mod_dir + name).c_str());
 #elif defined(__APPLE__)
-		auto result = dlopen(("lib" + name + ".dylib").c_str(), RTLD_LAZY);
+		auto result = dlopen((mod_dir + "lib" + name + ".dylib").c_str(), RTLD_LAZY);
 		if (!result)
 			printf("dlerror(): %s\n", dlerror());
 
 		return result;
 #else
-		auto result = dlopen(("./lib" + name + ".so").c_str(), RTLD_LAZY);
+		auto result = dlopen((mod_dir + "lib" + name + ".so").c_str(), RTLD_LAZY);
 		if (!result)
 			printf("dlerror(): %s\n", dlerror());
 
@@ -89,6 +91,15 @@ namespace yosen::utils
 	std::string get_current_path()
 	{
 		return std::filesystem::current_path().string();
+	}
+
+	std::string get_installation_path()
+	{
+#ifdef _WIN32
+			return "C:\\yosen_lang\\";
+#else
+			return "/usr/local/bin/yosen_lang/";
+#endif
 	}
 
 	static std::string color_to_ansii_code(ConsoleColor color)
