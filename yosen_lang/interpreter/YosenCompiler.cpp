@@ -204,6 +204,18 @@ namespace yosen
                 printf("STORE_MEMBER 0x%x\n", *it);
                 break;
             }
+            case opcodes::LOAD_GLOBAL:
+            {
+                it++;
+                printf("LOAD_GLOBAL 0x%x\n", *it);
+                break;
+            }
+            case opcodes::STORE_GLOBAL:
+            {
+                it++;
+                printf("STORE_GLOBAL 0x%x\n", *it);
+                break;
+            }
             case opcodes::REG_LOAD:
             {
                 it++;
@@ -390,7 +402,7 @@ namespace yosen
         return constant_key;
     }
 
-    uint32_t YosenCompiler::get_variable_key(json11::Json* node_ptr, StackFramePtr stack_frame)
+    std::pair<uint32_t, bool> YosenCompiler::get_variable_key(json11::Json* node_ptr, StackFramePtr stack_frame)
     {
         auto& node = *node_ptr;
 
@@ -400,23 +412,30 @@ namespace yosen
         return get_variable_key(identifier_value, stack_frame);
     }
 
-    uint32_t YosenCompiler::get_variable_key(const std::string& var, StackFramePtr stack_frame)
+    std::pair<uint32_t, bool> YosenCompiler::get_variable_key(const std::string& var, StackFramePtr stack_frame)
     {
-        // Make sure the variable exists
-        if (stack_frame->var_keys.find(var) == stack_frame->var_keys.end())
+        // Check for a local variable first
+        if (stack_frame->var_keys.find(var) != stack_frame->var_keys.end())
         {
-            // Free all compiled resources
-            __ys_free_compiled_resources(stack_frame);
+            // Get the key for the variable in the stack frame
+            auto var_key = stack_frame->var_keys.at(var);
 
-            auto ex_reason = "Undefined variable \"" + var + "\" used";
-            YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
-            return 0;
+            return { var_key, false };
         }
 
-        // Get the key for the variable in the stack frame
-        auto var_key = stack_frame->var_keys.at(var);
+        // Then check for a global variable
+        if (YosenEnvironment::get().is_global_variable(var))
+        {
+            return { YosenEnvironment::get().get_global_variable_index(var), true };
+        }
 
-        return var_key;
+        // If neither check passes, throw an
+        // exception and free all compiled resources.
+        __ys_free_compiled_resources(stack_frame);
+
+        auto ex_reason = "Undefined variable \"" + var + "\" used";
+        YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+        return { 0, false };
     }
 
     void YosenCompiler::compile_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode)
@@ -522,10 +541,10 @@ namespace yosen
                 // If the argument is a variable
                 //
                 // Get the value variable key
-                auto value_var_key = get_variable_key(&node, stack_frame);
+                auto [value_var_key, is_global] = get_variable_key(&node, stack_frame);
 
                 // Create bytecode for loading the variable
-                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(is_global ? opcodes::LOAD_GLOBAL : opcodes::LOAD);
                 bytecode.push_back(static_cast<opcodes::opcode_t>(value_var_key));
             }
         }
@@ -848,11 +867,11 @@ namespace yosen
             compile_expression(&value_node, stack_frame, bytecode);
 
             // Get the variable key
-            uint32_t var_key = get_variable_key(variable_name, stack_frame);
+            auto [var_key, is_global] = get_variable_key(variable_name, stack_frame);
 
             // At this point, the value object is loaded into LLOref,
             // now we need to create bytecode for storing the value into a variable.
-            bytecode.push_back(opcodes::STORE);
+            bytecode.push_back(is_global ? opcodes::STORE_GLOBAL : opcodes::STORE);
             bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
         }
     }
@@ -1151,10 +1170,10 @@ namespace yosen
             // and must be a valid variable.
             if (i == 0)
             {
-                auto var_key = get_variable_key(var_name, stack_frame);
+                auto [var_key, is_global] = get_variable_key(var_name, stack_frame);
 
                 // Load variable object
-                bytecode.push_back(opcodes::LOAD);
+                bytecode.push_back(is_global ? opcodes::LOAD_GLOBAL : opcodes::LOAD);
                 bytecode.push_back(static_cast<opcodes::opcode_t>(var_key));
 
                 // Push the parent object onto the operations stack
@@ -1258,7 +1277,9 @@ namespace yosen
         auto ast = parser.parse_source(source);
         for (auto node : ast.array_items())
         {
-            if (node["type"].string_value() == parser::ASTNodeType_Import)
+            auto node_type = node["type"].string_value();
+
+            if (node_type == parser::ASTNodeType_Import)
             {
                 // Directly import the library
                 auto import_name = node["name"].string_value();
@@ -1274,13 +1295,42 @@ namespace yosen
                     YosenEnvironment::get().load_yosen_module(import_name);   
                 }
             }
-            else if (node["type"].string_value() == parser::ASTNodeType_FunctionDeclaration)
+            else if (node_type == parser::ASTNodeType_FunctionDeclaration)
             {
                 compile_function_declaration(&node, program_source);
             }
-            else if (node["type"].string_value() == parser::ASTNodeType_ClassDeclaration)
+            else if (node_type == parser::ASTNodeType_ClassDeclaration)
             {
                 compile_class_declaration(&node, program_source);
+            }
+            else if (node_type == parser::ASTNodeType_VariableDeclaration)
+            {
+                auto& variable_name = node["name"].string_value();
+                auto  value_node = node["value"];
+
+                if (value_node["type"].string_value() != parser::ASTNodeType_Literal)
+                {
+                    auto ex_reason = "Value of a global variable \"" + variable_name + "\" has to be a literal, not an expression";
+                    YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                    return program_source;
+                }
+
+                // Check if the variable exists
+                if (YosenEnvironment::get().is_global_variable(variable_name))
+                {
+                    auto ex_reason = "Global variable \"" + variable_name + "\" already exists";
+                    YosenEnvironment::get().throw_exception(CompilerException(ex_reason));
+                    return program_source;
+                }
+
+                auto& literal_type = value_node["value_type"].string_value();
+                auto& value_node_literal_value = value_node["value"].string_value();
+
+                // Allocate global variable object
+                auto global_var_obj = allocate_literal_object(literal_type, value_node_literal_value);
+
+                // Create a global variable entry
+                YosenEnvironment::get().register_global_variable(variable_name, global_var_obj);
             }
         }
 

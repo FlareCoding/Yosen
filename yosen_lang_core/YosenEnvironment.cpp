@@ -61,6 +61,10 @@ namespace yosen
 				free_object(var);
 		}
 
+		// Free all the global variables
+		for (auto& [name, key_obj_pair] : m_global_variable_objects)
+			free_object(key_obj_pair.second);
+
 		free_object(YosenObject_Null);
 	}
 
@@ -180,6 +184,49 @@ namespace yosen
 		m_runtime_class_builder_objects[name] = builder;
 
 		return builder;
+	}
+
+	void YosenEnvironment::register_global_variable(const std::string& name, YosenObject* value)
+	{
+		if (!is_global_variable(name))
+			m_global_variable_objects.insert({name, { m_global_variable_objects.size(), value }});
+	}
+
+	bool YosenEnvironment::is_global_variable(const std::string& name)
+	{
+		return m_global_variable_objects.find(name) != m_global_variable_objects.end();
+	}
+
+	YosenObject*& YosenEnvironment::get_global_variable(const std::string& name)
+	{
+		return m_global_variable_objects.at(name).second;
+	}
+
+	YosenObject*& YosenEnvironment::get_global_variable(uint32_t key)
+	{
+		for (auto& [name, key_obj_pair] : m_global_variable_objects)
+			if (key_obj_pair.first == key)
+				return key_obj_pair.second;
+
+		return YosenObject_Null;
+	}
+
+	uint32_t YosenEnvironment::get_global_variable_index(const std::string& name)
+	{
+		return m_global_variable_objects.at(name).first;
+	}
+
+	void YosenEnvironment::set_global_variable(const std::string& name, YosenObject* value)
+	{
+		if (is_global_variable(name))
+			m_global_variable_objects[name].second = value;
+	}
+
+	void YosenEnvironment::set_global_variable(uint32_t key, YosenObject* value)
+	{
+		for (auto& [name, key_obj_pair] : m_global_variable_objects)
+			if (key_obj_pair.first == key)
+				key_obj_pair.second = value;
 	}
 
 	void YosenEnvironment::start_module_namespace(const std::string& name)

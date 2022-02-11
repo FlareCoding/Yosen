@@ -8,6 +8,7 @@ add_custom_target(tests
         primitives.ys
         fibb.ys
         classes.ys
+        global_vars.ys
         multi_file_test/logger.ys
         multi_file_test/util.ys
         multi_file_test/main.ys

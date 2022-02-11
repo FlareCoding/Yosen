@@ -35,11 +35,15 @@ namespace yosen
 		// Returns the key for the constant defined by the AST node
 		uint32_t get_constant_literal_key(json11::Json* node_ptr, StackFramePtr stack_frame);
 
-		// Returns the key for the variable defined by the AST node
-		uint32_t get_variable_key(json11::Json* node_ptr, StackFramePtr stack_frame);
+		// Returns the key for the variable defined by the AST node,
+		// but if the variable is a global variable, then it returns its global index,
+		// and true as a second value of the resulting pair.
+		std::pair<uint32_t, bool> get_variable_key(json11::Json* node_ptr, StackFramePtr stack_frame);
 
-		// Returns the key for the specified variable
-		uint32_t get_variable_key(const std::string& var, StackFramePtr stack_frame);
+		// Returns the key for the variable defined by the AST node,
+		// but if the variable is a global variable, then it returns its global index,
+		// and true as a second value of the resulting pair.
+		std::pair<uint32_t, bool> get_variable_key(const std::string& var, StackFramePtr stack_frame);
 
 		// Compiles a generic statement AST node
 		void compile_statement(json11::Json* node_ptr, StackFramePtr stack_frame, bytecode_t& bytecode);

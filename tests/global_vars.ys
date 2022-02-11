@@ -1,0 +1,29 @@
+import stdio;
+
+var g_handle = "global handle";
+
+func realChangeGlobal()
+{
+    g_handle = "real test passed!";
+}
+
+func fakeChangeGlobal()
+{
+    // This is a test to check if the local
+    // variable with the same name will
+    // affect the global variable's value.
+
+    var g_handle = "fake";
+    g_handle = "fake test";
+}
+
+func main()
+{
+    io::println(g_handle);
+    
+    fakeChangeGlobal();
+    io::println(g_handle);
+    
+    realChangeGlobal();
+    io::println(g_handle);
+}
