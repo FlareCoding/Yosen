@@ -78,6 +78,44 @@ namespace yosen
 		);
 
 		YOSENAPI
+		void register_global_variable(
+			const std::string& name,
+			YosenObject* value
+		);
+
+		YOSENAPI
+		bool is_global_variable(
+			const std::string& name
+		);
+
+		YOSENAPI
+		YosenObject*& get_global_variable(
+			const std::string& name
+		);
+
+		YOSENAPI
+		YosenObject*& get_global_variable(
+			uint32_t key
+		);
+
+		YOSENAPI
+		uint32_t get_global_variable_index(
+			const std::string& name
+		);
+
+		YOSENAPI
+		void set_global_variable(
+			const std::string& name,
+			YosenObject* value
+		);
+
+		YOSENAPI
+		void set_global_variable(
+			uint32_t key,
+			YosenObject* value
+		);
+
+		YOSENAPI
 		void start_module_namespace(
 			const std::string& name
 		);
@@ -113,6 +151,8 @@ namespace yosen
 		std::map<std::string, ys_class_builder_fn_t> m_custom_class_builders; // builder functions
 
 		std::map<std::string, std::shared_ptr<RuntimeClassBuilder>> m_runtime_class_builder_objects; // builder objects
+
+		std::map<std::string, std::pair<uint32_t, YosenObject*>> m_global_variable_objects;
 
 	private:
 		// List of exception listeners

@@ -407,6 +407,31 @@ namespace yosen
 
             break;
         }
+        case opcodes::LOAD_GLOBAL:
+        {
+            auto operand = ops[1];
+            opcount = 2;
+
+            LLOref = &m_env->get_global_variable(operand);
+            break;
+        }
+        case opcodes::STORE_GLOBAL:
+        {
+            // Operand is the key of the variable being modified in the vars map
+            auto operand = ops[1];
+            opcount = 2;
+
+            // Retrieve the original object
+            auto original_object = m_env->get_global_variable(operand);
+
+            // Assign the new object
+            m_env->set_global_variable(operand, (*LLOref)->clone());
+
+            // Free the original object
+            free_object(original_object);
+
+            break;
+        }
         case opcodes::REG_LOAD:
         {
             auto operand = ops[1];
