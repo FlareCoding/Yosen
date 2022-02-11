@@ -189,7 +189,7 @@ namespace yosen
 	void YosenEnvironment::register_global_variable(const std::string& name, YosenObject* value)
 	{
 		if (!is_global_variable(name))
-			m_global_variable_objects.insert({name, { m_global_variable_objects.size(), value }});
+			m_global_variable_objects.insert({name, { (uint32_t)m_global_variable_objects.size(), value }});
 	}
 
 	bool YosenEnvironment::is_global_variable(const std::string& name)
