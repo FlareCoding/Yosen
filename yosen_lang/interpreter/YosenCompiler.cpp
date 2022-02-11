@@ -1239,7 +1239,9 @@ namespace yosen
 
     void YosenCompiler::compile_imported_yosen_source_file(const std::string& import_name, const std::string& current_path)
     {
-        std::string file_path = current_path + "/" + import_name;
+        std::string file_path = import_name;
+        if (!current_path.empty())
+            file_path = current_path + "/" + import_name;
 
         if (import_name.empty() || !std::filesystem::is_regular_file(file_path))
         {
