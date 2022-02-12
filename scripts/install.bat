@@ -29,10 +29,12 @@ cd /d %~dp0
 if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 
 :: Start of the main sector
-cd ..
+if not exist yosen_lang.exe cd ..
 
 :: Retrieve the full binary path
 set bin_path="%cd%\build\bin\Windows\Release\"
+
+if exist yosen_lang.exe set bin_path="%cd%"
 
 :: Get the installation path
 set install_path=C:\yosen_lang
