@@ -83,7 +83,7 @@ namespace yosen::utils
 		char buf[PATH_MAX];
 		memset(buf, 0, sizeof(buf));
 
-		readlink("/proc/self/exe", buf, PATH_MAX);
+		auto _ = readlink("/proc/self/exe", buf, PATH_MAX);
 		return buf;
 #endif
 	}
