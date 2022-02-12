@@ -1,5 +1,5 @@
 #include "YosenList.h"
-#include "YosenInteger.h"
+#include <YosenEnvironment.h>
 
 namespace yosen
 {
@@ -64,6 +64,14 @@ namespace yosen
 		arg_parse(args, "i", &index);
 
 		auto this_obj = static_cast<YosenList*>(self);
+
+		if (index < 0 || index >= (int64_t)this_obj->items.size())
+		{
+			auto ex_reason = "list index out of bounds";
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return nullptr;
+		}
+
 		return this_obj->items[index]->clone();
 	}
 	
@@ -84,8 +92,15 @@ namespace yosen
 		arg_parse(args, "i", &index);
 
 		auto this_obj = static_cast<YosenList*>(self);
-		this_obj->items.erase(this_obj->items.begin() + index);
 
+		if (index < 0 || index >= (int64_t)this_obj->items.size())
+		{
+			auto ex_reason = "list index out of bounds";
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return nullptr;
+		}
+
+		this_obj->items.erase(this_obj->items.begin() + index);
 		return YosenObject_Null->clone();
 	}
 	

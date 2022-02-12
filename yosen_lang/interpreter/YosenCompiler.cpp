@@ -104,6 +104,11 @@ namespace yosen
         case parser::LiteralType::List:
         {
             auto element_values = split(value, ',');
+            
+            // Check the edge case of zero-item list
+            if (element_values.size() == 1 && element_values.at(0).empty())
+                element_values.clear();
+
             std::vector<YosenObject*> list_elems;
 
             try {
