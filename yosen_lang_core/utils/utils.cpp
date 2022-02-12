@@ -27,14 +27,29 @@ namespace yosen::utils
 		auto mod_dir = get_installation_path();
 
 #ifdef _WIN32
+		// First attempt to look in the current directory
+		auto local_mod = LoadLibraryA(name.c_str());
+		if (local_mod)
+			return local_mod;
+
 		return LoadLibraryA((mod_dir + name).c_str());
 #elif defined(__APPLE__)
+		// First attempt to look in the current directory
+		auto local_result = dlopen(("lib" + name + ".dylib").c_str(), RTLD_LAZY);
+		if (local_result)
+			return local_result;
+		
 		auto result = dlopen((mod_dir + "lib" + name + ".dylib").c_str(), RTLD_LAZY);
 		if (!result)
 			printf("dlerror(): %s\n", dlerror());
 
 		return result;
 #else
+		// First attempt to look in the current directory
+		auto local_result = dlopen(("lib" + name + ".so").c_str(), RTLD_LAZY);
+		if (local_result)
+			return local_result;
+
 		auto result = dlopen((mod_dir + "lib" + name + ".so").c_str(), RTLD_LAZY);
 		if (!result)
 			printf("dlerror(): %s\n", dlerror());
