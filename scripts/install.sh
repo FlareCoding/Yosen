@@ -1,5 +1,4 @@
 #!/bin/bash
-cd ..
 
 # Check to make sure the script has root privileges
 if [[ $EUID -ne 0 ]]; then
@@ -7,8 +6,13 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+if [ ! -f "yosen_lang" ]; then cd ..; fi
+
 # Retrieve the full binary path
 bin_rel_path="build/bin/$(uname)/Release/"
+
+if [ -f "yosen_lang" ]; then bin_rel_path=""; fi
+
 bin_path=$(cd "$(dirname "$bin_rel_path")"; pwd)/$(basename "$bin_rel_path")
 
 # Get the installation path
