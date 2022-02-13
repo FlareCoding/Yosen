@@ -4,7 +4,7 @@
 
 EXTERNC YOSENEXPORT void _ys_init_module()
 {
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	auto& env = YosenEnvironment::get();
 
