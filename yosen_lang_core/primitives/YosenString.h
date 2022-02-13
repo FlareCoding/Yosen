@@ -18,8 +18,15 @@ namespace yosen
 	private:
 		void register_member_native_functions();
 
+		YosenObject* length(YosenObject* self, YosenObject* args);
 		YosenObject* reverse(YosenObject* self, YosenObject* args);
 		YosenObject* append(YosenObject* self, YosenObject* args);
+		YosenObject* substr(YosenObject* self, YosenObject* args);
+		YosenObject* contains(YosenObject* self, YosenObject* args);
+		YosenObject* find(YosenObject* self, YosenObject* args);
+		YosenObject* remove(YosenObject* self, YosenObject* args);
+		YosenObject* clear(YosenObject* self, YosenObject* args);
+		YosenObject* is_empty(YosenObject* self, YosenObject* args);
 
 	private:
 		void register_runtime_operator_functions();
