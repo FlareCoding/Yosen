@@ -4,6 +4,11 @@
 #include <filesystem>
 #include <stdio.h>
 
+#ifdef _WIN32
+	#define popen	_popen
+	#define pclose	_pclose
+#endif
+
 YosenObject* _ys_std_os_system(YosenObject* args)
 {
     char* cmd = nullptr;
@@ -25,7 +30,7 @@ YosenObject* _ys_std_os_system(YosenObject* args)
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
     }
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    while (fgets(buffer.data(), (int)buffer.size(), pipe.get()) != nullptr) {
         result += buffer.data();
     }
     
