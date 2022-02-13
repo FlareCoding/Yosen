@@ -888,6 +888,9 @@ namespace yosen
                 // Check for a native function
                 else if (m_env->is_static_native_function(fn_name))
                 {
+                    // Reverse the parameters for the native function case
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
+
                     auto fn = m_env->get_static_native_function(fn_name);
                     return_val = fn(param_pack);
 

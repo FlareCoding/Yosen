@@ -191,7 +191,16 @@ namespace yosen
 
 		YosenTuple* args_tuple = dynamic_cast<YosenTuple*>(obj);
 		
-		size_t fmt_arg_count = std::min(strlen(fmt), args_tuple->items.size());
+		size_t fmt_arg_count = strlen(fmt);
+		if (fmt_arg_count != args_tuple->items.size())
+		{
+			auto ex_reason = "Expected " + std::to_string(fmt_arg_count) + 
+							" arguments, but received " +
+							std::to_string(args_tuple->items.size());
+
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return false;
+		}
 
 		va_list args;
 		va_start(args, fmt);
