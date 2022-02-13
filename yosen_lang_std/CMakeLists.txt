@@ -11,3 +11,15 @@ add_library(
 )
 target_include_directories(${TARGET_NAME} PUBLIC yosen_lang_core)
 target_link_libraries(${TARGET_NAME} yosen_lang_core)
+
+set(TARGET_NAME os)
+add_library(
+    ${TARGET_NAME} SHARED
+
+    os_module_init.cpp
+
+    yosen_std_os.h
+    yosen_std_os.cpp
+)
+target_include_directories(${TARGET_NAME} PUBLIC yosen_lang_core)
+target_link_libraries(${TARGET_NAME} yosen_lang_core)
