@@ -738,9 +738,6 @@ namespace yosen
             auto& parameter_stack = m_parameter_stacks.top();
             auto param_count = parameter_stack.size();
 
-            // Reverse the param stack
-            std::reverse(parameter_stack.begin(), parameter_stack.end());
-
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
 
             YosenObject* return_val = nullptr;
@@ -764,6 +761,9 @@ namespace yosen
                 }
                 else if (caller_object->has_member_runtime_function(fn_name))
                 {
+                    // Reverse the parameters for the runtime function case
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
+
                     auto fn = caller_object->get_member_runtime_function(fn_name);
 
                     auto fn_stack_frame = fn.first->clone();
@@ -836,6 +836,9 @@ namespace yosen
                 // Check for a user-defined function
                 if (m_env->is_static_runtime_function(fn_name))
                 {
+                    // Reverse the parameters for the runtime function case
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
+
                     auto fn = m_env->get_static_runtime_function(fn_name);
 
                     auto fn_stack_frame = fn.first->clone();
@@ -888,9 +891,6 @@ namespace yosen
                 // Check for a native function
                 else if (m_env->is_static_native_function(fn_name))
                 {
-                    // Reverse the parameters for the native function case
-                    std::reverse(param_pack->items.begin(), param_pack->items.end());
-
                     auto fn = m_env->get_static_native_function(fn_name);
                     return_val = fn(param_pack);
 
