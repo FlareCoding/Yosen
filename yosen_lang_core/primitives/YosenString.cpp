@@ -121,6 +121,21 @@ namespace yosen
 		arg_parse(args, "ii", &start, &end);
 
 		auto this_obj = static_cast<YosenString*>(self);
+
+		if (start < 0 || start >= (int64_t)this_obj->value.size())
+		{
+			auto ex_reason = "string::substr() - start index out of range";
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return nullptr;
+		}
+
+		if (end < 0 || end >= (int64_t)this_obj->value.size())
+		{
+			auto ex_reason = "string::substr() - end index out of range";
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return nullptr;
+		}
+
 		auto new_string = this_obj->value.substr(start, (end - start));
 
 		return allocate_object<YosenString>(new_string);

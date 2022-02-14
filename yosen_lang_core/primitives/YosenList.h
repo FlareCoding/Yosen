@@ -24,5 +24,12 @@ namespace yosen
 		YosenObject* remove(YosenObject* self, YosenObject* args);
 		YosenObject* clear(YosenObject* self, YosenObject* args);
 		YosenObject* length(YosenObject* self, YosenObject* args);
+		YosenObject* contains(YosenObject* self, YosenObject* args);
+		YosenObject* find(YosenObject* self, YosenObject* args);
+		YosenObject* is_empty(YosenObject* self, YosenObject* args);
+		YosenObject* slice(YosenObject* self, YosenObject* args);
+		YosenObject* first(YosenObject* self, YosenObject* args);
+		YosenObject* last(YosenObject* self, YosenObject* args);
+		YosenObject* pop_back(YosenObject* self, YosenObject* args);
 	};
 }
