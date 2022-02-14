@@ -201,7 +201,11 @@ namespace yosen::parser
 	ASTNode Parser::parse_block()
 	{
 		if (is_keyword(current_token, Keyword::Import))
-			return parse_import_statement();
+		{
+			auto import_node = parse_import_statement();
+			expect(Symbol::Semicolon);
+			return import_node;
+		}
 
 		if (is_keyword(current_token, Keyword::Func))
 			return parse_function_declaration();
