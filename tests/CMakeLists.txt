@@ -9,7 +9,12 @@ add_custom_target(tests
         fibb.ys
         classes.ys
         global_vars.ys
+
         multi_file_test/logger.ys
         multi_file_test/util.ys
         multi_file_test/main.ys
+
+        blackjack/card.ys
+        blackjack/game.ys
+        blackjack/main.ys
 )

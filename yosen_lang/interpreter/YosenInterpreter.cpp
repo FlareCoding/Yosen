@@ -56,7 +56,7 @@ namespace yosen
         for (auto& stack_frame : m_allocated_stack_frames)
         {
             // Deallocated created resources off the stack frame
-            deallocate_frame(stack_frame);
+            deallocate_stack_frame(stack_frame);
 
             // Completely destroy the last resources on the stack frame
             destroy_stack_frame(stack_frame);
@@ -233,7 +233,7 @@ namespace yosen
         }
 	}
 
-	void YosenInterpreter::deallocate_frame(StackFramePtr stack_frame)
+	void YosenInterpreter::deallocate_stack_frame(StackFramePtr stack_frame)
 	{
 		// Deallocate incoming parameters
         for (auto& [name, obj] : stack_frame->params)
@@ -255,6 +255,12 @@ namespace yosen
 		// Deallocate pushed variables
 		for (auto& obj : m_parameter_stacks.top())
 			if (obj) free_object(obj);
+
+        // Deallocate disposed objects
+        for (auto& obj : stack_frame->disposed_objects)
+            free_object(obj);
+
+        stack_frame->disposed_objects.clear();
 	}
 	
 	void YosenInterpreter::destroy_stack_frame(StackFramePtr stack_frame)
@@ -694,7 +700,7 @@ namespace yosen
                 instance = static_cast<YosenReference*>(fn_stack_frame->params[0].second)->obj;
 
                 // Deallocate the user function's stack frame
-                deallocate_frame(fn_stack_frame);
+                deallocate_stack_frame(fn_stack_frame);
 
                 // Destroy the stack frame since it's a clone
                 destroy_stack_frame(fn_stack_frame);
@@ -727,10 +733,19 @@ namespace yosen
             current_instruction = instruction_count;
             return 0;
         }
+        case opcodes::SET_RUNTIME_FLAG:
+        {
+            // Operand is flag to be set
+            auto operand = ops[1];
+            opcount = 2;
+
+            m_runtime_flag = static_cast<RuntimeFlag>(operand);
+            break;
+        }
         case opcodes::CALL:
         {
             auto fn_index = ops[1];
-            auto caller_var = ops[2];
+            auto has_caller = ops[2];
             auto fn_name = stack_frame->function_names[fn_index];
             opcount = 3;
 
@@ -742,7 +757,7 @@ namespace yosen
 
             YosenObject* return_val = nullptr;
 
-            if (caller_var)
+            if (has_caller)
             {
                 // Member function
                 auto caller_object = *LLOref;
@@ -754,7 +769,15 @@ namespace yosen
 
                     // If the return register is not empty, deallocate the existing object
                     if (m_registers[RegisterType::ReturnRegister] != nullptr)
-                        free_object(m_registers[RegisterType::ReturnRegister]);
+                    {
+                        if (m_runtime_flag == RuntimeFlag::SequenceFunctionCall)
+                        {
+                            m_runtime_flag = RuntimeFlag::Null;
+                            stack_frame->disposed_objects.push_back(m_registers[RegisterType::ReturnRegister]);
+                        }
+                        else
+                            free_object(m_registers[RegisterType::ReturnRegister]);
+                    }
 
                     // Move the return value into the return register
                     m_registers[RegisterType::ReturnRegister] = return_val;
@@ -810,7 +833,7 @@ namespace yosen
                     execute_bytecode(fn_stack_frame, fn_bytecode);
 
                     // Deallocate the user function's stack frame
-                    deallocate_frame(fn_stack_frame);
+                    deallocate_stack_frame(fn_stack_frame);
 
                     // Destroy the stack frame since it's a clone
                     destroy_stack_frame(fn_stack_frame);
@@ -879,7 +902,7 @@ namespace yosen
                     execute_bytecode(fn_stack_frame, fn_bytecode);
 
                     // Deallocate the user function's stack frame
-                    deallocate_frame(fn_stack_frame);
+                    deallocate_stack_frame(fn_stack_frame);
 
                     // Destroy the stack frame since it's a clone
                     destroy_stack_frame(fn_stack_frame);
@@ -896,7 +919,15 @@ namespace yosen
 
                     // If the return register is not empty, deallocate the existing object
                     if (m_registers[RegisterType::ReturnRegister] != nullptr)
-                        free_object(m_registers[RegisterType::ReturnRegister]);
+                    {
+                        if (m_runtime_flag == RuntimeFlag::SequenceFunctionCall)
+                        {
+                            m_runtime_flag = RuntimeFlag::Null;
+                            stack_frame->disposed_objects.push_back(m_registers[RegisterType::ReturnRegister]);
+                        }
+                        else
+                            free_object(m_registers[RegisterType::ReturnRegister]);
+                    }
 
                     // Move the return value into the return register
                     m_registers[RegisterType::ReturnRegister] = return_val;

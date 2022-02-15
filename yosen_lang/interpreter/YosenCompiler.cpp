@@ -357,6 +357,12 @@ namespace yosen
                 printf("JMP_IF_FALSE %i\n", *it);
                 break;
             }
+            case opcodes::SET_RUNTIME_FLAG:
+            {
+                it++;
+                printf("SET_RUNTIME_FLAG %i\n", *it);
+                break;
+            }
             default:
                 printf("0x%x ", *it);
             }
@@ -511,7 +517,15 @@ namespace yosen
         auto& value_node_type = node["type"].string_value();
 
         // Determining the value type, expression, literal, or another variable.
-        if (value_node_type == parser::ASTNodeType_Literal)
+        if (value_node_type == parser::ASTNodeType_NodeSequence)
+        {
+            auto first_node = node["first"];
+            auto second_node = node["second"];
+
+            compile_expression(&first_node, stack_frame, bytecode);
+            compile_expression(&second_node, stack_frame, bytecode);
+        }
+        else if (value_node_type == parser::ASTNodeType_Literal)
         {
             // Get the key for the constant in the stack frame
             auto constant_key = get_constant_literal_key(&node, stack_frame);
@@ -668,10 +682,19 @@ namespace yosen
             // Set the caller flag
             has_caller_flag = 0x01;
 
-            compile_loading_parent_objects(&node, stack_frame, bytecode);
+            // If there is a valid caller object, load it
+            if (node["parent"].string_value() != parser::ASTCallerID_LLO)
+            {
+                compile_loading_parent_objects(&node, stack_frame, bytecode);
 
-            // Pop the last object from the operations stack
-            bytecode.push_back(opcodes::POP_OP_NO_FREE);
+                // Pop the last object from the operations stack
+                bytecode.push_back(opcodes::POP_OP_NO_FREE);
+            }
+            else
+            {
+                bytecode.push_back(opcodes::SET_RUNTIME_FLAG);
+                bytecode.push_back(static_cast<opcodes::opcode_t>(0x00000001));
+            }
         }
 
         // Create the bytecode for calling the function
@@ -1224,6 +1247,12 @@ namespace yosen
 
 			stack_frame->vars[key] = YosenObject_Null->clone();
 		}
+
+        // Deallocate disposed objects
+        for (auto& obj : stack_frame->disposed_objects)
+            free_object(obj);
+
+        stack_frame->disposed_objects.clear();
 	}
 
     void YosenCompiler::destroy_stack_frame(StackFramePtr stack_frame)

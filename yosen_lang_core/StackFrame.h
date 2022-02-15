@@ -39,6 +39,10 @@ namespace yosen
 		// Names of member variable names
 		std::vector<std::string> member_variable_names;
 
+		// List of objects that could not be deallocated during the
+		// normal function execution and have to be deallocated properly.
+		std::vector<YosenObject*> disposed_objects;
+
 		// Creates the needed entries for the variable
 		YOSENAPI void add_variable(const std::string& name, YosenObject* obj = nullptr);
 
