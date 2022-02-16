@@ -16,7 +16,6 @@
 		#include <unistd.h>
 		#include <limits.h>
 		#include <cstring>
-		#include <dlfcn.h>
 	#endif
 #endif
 
