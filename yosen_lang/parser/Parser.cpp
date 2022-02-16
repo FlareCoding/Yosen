@@ -201,7 +201,11 @@ namespace yosen::parser
 	ASTNode Parser::parse_block()
 	{
 		if (is_keyword(current_token, Keyword::Import))
-			return parse_import_statement();
+		{
+			auto import_node = parse_import_statement();
+			expect(Symbol::Semicolon);
+			return import_node;
+		}
 
 		if (is_keyword(current_token, Keyword::Func))
 			return parse_function_declaration();
@@ -327,6 +331,62 @@ namespace yosen::parser
 			auto function_call_node = parse_function_call(identifier);
 			if (!parent.empty())
 				function_call_node["parent"] = parent;
+
+			// Check for a sequenced function call statement
+			if (is_symbol(current_token, Symbol::Period))
+			{
+				expect(Symbol::Period);
+				auto next_node = parse_expression({ Symbol::Semicolon });
+
+				if (next_node["type"].string_value() != ASTNodeType_FunctionCall &&
+					next_node["type"].string_value() != ASTNodeType_NodeSequence)
+				{
+					auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected a sequence of function calls";
+					YosenEnvironment::get().throw_exception(ParserException(ex_reason));
+					return node;
+				}
+
+				// Adjusting the caller of the second function
+				if (next_node["type"].string_value() == ASTNodeType_FunctionCall)
+					next_node["parent"] = ASTCallerID_LLO;
+				else if (next_node["type"].string_value() == ASTNodeType_NodeSequence)
+				{
+					auto first_node = next_node["first"].object_items();
+					first_node["parent"] = ASTCallerID_LLO;
+
+					next_node["first"] = first_node;
+
+					std::function<void(ASTNode*)> fix_sequence_second_nodes = [&](ASTNode* node_ptr) {
+						auto& node = *node_ptr;
+
+						auto first_node = node["first"].object_items();
+						first_node["parent"] = ASTCallerID_LLO;
+
+						node["first"] = first_node;
+
+						// Base case
+						if (node["type"].string_value() == ASTNodeType_FunctionCall)
+						{
+							node["parent"] = ASTCallerID_LLO;
+							return;
+						}
+						else if (node["type"].string_value() == ASTNodeType_NodeSequence)
+						{
+							const ASTNode& second_node = node["second"].object_items();
+							fix_sequence_second_nodes(&const_cast<ASTNode&>(second_node));
+						}
+					};
+
+					fix_sequence_second_nodes(&next_node);
+				}
+
+				ASTNode sequence_node;
+				sequence_node["type"] = ASTNodeType_NodeSequence;
+				sequence_node["first"] = function_call_node;
+				sequence_node["second"] = next_node;
+
+				return sequence_node;
+			}
 
 			return function_call_node;
 		}
@@ -494,6 +554,62 @@ namespace yosen::parser
 			auto node = parse_function_call(class_name);
 			node["type"] = ASTNodeType_ClassInstantiation;
 
+			// Check for a sequenced function call statement
+			if (is_symbol(current_token, Symbol::Period))
+			{
+				expect(Symbol::Period);
+				auto next_node = parse_expression(stop_symbols);
+
+				if (next_node["type"].string_value() != ASTNodeType_FunctionCall &&
+					next_node["type"].string_value() != ASTNodeType_NodeSequence)
+				{
+					auto ex_reason = "Line " + std::to_string(current_token->lineno) + " - expected a sequence of function calls";
+					YosenEnvironment::get().throw_exception(ParserException(ex_reason));
+					return node;
+				}
+
+				// Adjusting the caller of the second function
+				if (next_node["type"].string_value() == ASTNodeType_FunctionCall)
+					next_node["parent"] = ASTCallerID_LLO;
+				else if (next_node["type"].string_value() == ASTNodeType_NodeSequence)
+				{
+					auto first_node = next_node["first"].object_items();
+					first_node["parent"] = ASTCallerID_LLO;
+
+					next_node["first"] = first_node;
+
+					std::function<void(ASTNode*)> fix_sequence_second_nodes = [&](ASTNode* node_ptr) {
+						auto& node = *node_ptr;
+
+						auto first_node = node["first"].object_items();
+						first_node["parent"] = ASTCallerID_LLO;
+
+						node["first"] = first_node;
+
+						// Base case
+						if (node["type"].string_value() == ASTNodeType_FunctionCall)
+						{
+							node["parent"] = ASTCallerID_LLO;
+							return;
+						}
+						else if (node["type"].string_value() == ASTNodeType_NodeSequence)
+						{
+							const ASTNode& second_node = node["second"].object_items();
+							fix_sequence_second_nodes(&const_cast<ASTNode&>(second_node));
+						}
+					};
+
+					fix_sequence_second_nodes(&next_node);
+				}
+
+				ASTNode sequence_node;
+				sequence_node["type"] = ASTNodeType_NodeSequence;
+				sequence_node["first"] = node;
+				sequence_node["second"] = next_node;
+
+				return sequence_node;
+			}
+
 			return node;
 		}
 		else if (is_symbol(current_token, Symbol::ParenthesisOpen))
@@ -512,6 +628,11 @@ namespace yosen::parser
 			lhs["type"] = ASTNodeType_Literal;
 			lhs["value_type"] = LiteralValueToken::type_to_string(lvt->value_type);
 			lhs["value"] = lvt->value;
+
+			// If the value is a string, wrap it with an extra
+			// set of quotes to work properly on the stack frame.
+			if (lvt->value_type == LiteralType::String)
+				lhs["value"] = "\"" + lvt->value + "\"";
 
 			expect(TokenType::LiteralValue);
 		}

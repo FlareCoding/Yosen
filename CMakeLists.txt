@@ -16,6 +16,7 @@ include_directories(yosen_lang_core)
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
     set(OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME}/Debug)
+    add_definitions(-DDEBUG -D_DEBUG)
 else()
     set(OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin/${CMAKE_SYSTEM_NAME}/Release)
 endif (CMAKE_BUILD_TYPE MATCHES Debug)

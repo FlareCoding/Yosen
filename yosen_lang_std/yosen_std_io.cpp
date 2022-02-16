@@ -46,6 +46,8 @@ YosenObject* _ys_std_io_input(YosenObject* args)
 
 		printf("%s", obj->to_string().c_str());
 	}
+	else
+		arg_parse(args, "");
 
 	std::string input;
 	std::getline(std::cin, input);

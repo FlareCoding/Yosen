@@ -16,6 +16,6 @@
 
 #define EXTERNC extern "C"
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(_DEBUG)
 	#define YOSEN_INTERPRETER_DEBUG_MODE 1
 #endif

@@ -114,6 +114,8 @@ namespace yosen
 	
 	YosenObject* YosenList::clear(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenList*>(self);
 
 		for (auto& item : this_obj->items)
@@ -126,6 +128,7 @@ namespace yosen
 	
 	YosenObject* YosenList::length(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
 		auto this_obj = static_cast<YosenList*>(self);
 
 		return allocate_object<YosenInteger>((int64_t)this_obj->items.size());
@@ -166,6 +169,8 @@ namespace yosen
 
 	YosenObject* YosenList::is_empty(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenList*>(self);
 		bool result = this_obj->items.empty();
 
@@ -203,6 +208,7 @@ namespace yosen
 
 	YosenObject* YosenList::first(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
 		auto this_obj = static_cast<YosenList*>(self);
 
 		if (!this_obj->items.size())
@@ -217,6 +223,7 @@ namespace yosen
 
 	YosenObject* YosenList::last(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
 		auto this_obj = static_cast<YosenList*>(self);
 
 		if (!this_obj->items.size())
@@ -231,6 +238,7 @@ namespace yosen
 
 	YosenObject* YosenList::pop_back(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
 		auto this_obj = static_cast<YosenList*>(self);
 		this_obj->items.pop_back();
 

@@ -6,6 +6,8 @@ namespace yosen::parser
 	using ASTNode	= json11::Json::object;
 	using AST		= json11::Json;
 
+	constexpr auto ASTCallerID_LLO					= "$_YS_CALLER_IS_LLO";
+
 	constexpr auto ASTNodeType_ClassDeclaration		= "classs_declaration";
 	constexpr auto ASTNodeType_FunctionDeclaration	= "function_declaration";
 	constexpr auto ASTNodeType_FunctionCall			= "function_call";
@@ -22,4 +24,5 @@ namespace yosen::parser
 	constexpr auto ASTNodeType_ForLoop				= "for_loop";
 	constexpr auto ASTNodeType_WhileLoop			= "while_loop";
 	constexpr auto ASTNodeType_BreakStatement		= "break_statement";
+	constexpr auto ASTNodeType_NodeSequence			= "node_sequence";
 }

@@ -46,7 +46,7 @@ namespace yosen::utils
 		return result;
 #else
 		// First attempt to look in the current directory
-		auto local_result = dlopen(("lib" + name + ".so").c_str(), RTLD_LAZY);
+		auto local_result = dlopen(("./lib" + name + ".so").c_str(), RTLD_LAZY);
 		if (local_result)
 			return local_result;
 

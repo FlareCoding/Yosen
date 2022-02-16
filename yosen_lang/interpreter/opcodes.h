@@ -153,6 +153,10 @@ namespace yosen
 		// Operand: instruction index to which the execution pointer should jump.
 		constexpr opcode_t JMP_IF_FALSE = 0x11;
 
+		// Sets a
+		// Operand: index of the runtime flag in the RuntimeFlags enum.
+		constexpr opcode_t SET_RUNTIME_FLAG = 0x08;
+
 #define RETURN REG_STORE, 0x02
 	}
 }

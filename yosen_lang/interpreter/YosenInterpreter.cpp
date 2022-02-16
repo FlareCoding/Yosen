@@ -56,7 +56,7 @@ namespace yosen
         for (auto& stack_frame : m_allocated_stack_frames)
         {
             // Deallocated created resources off the stack frame
-            deallocate_frame(stack_frame);
+            deallocate_stack_frame(stack_frame);
 
             // Completely destroy the last resources on the stack frame
             destroy_stack_frame(stack_frame);
@@ -105,6 +105,8 @@ namespace yosen
 
     void YosenInterpreter::main_exception_handler(const YosenException& ex)
     {
+        trace_call_stack();
+
         utils::log_colored(
             utils::ConsoleColor::Yellow,
             "%s\n",
@@ -119,6 +121,23 @@ namespace yosen
 
         shutdown();
         exit(1);
+    }
+
+    void YosenInterpreter::trace_call_stack()
+    {
+        utils::log_colored(
+            utils::ConsoleColor::Yellow,
+            "Callstack:\n"
+        );
+        
+        for (auto& name : m_call_stack)
+        {
+            utils::log_colored(
+                utils::ConsoleColor::Yellow,
+                "<>\t%s\n",
+                name.c_str()
+            );
+        }
     }
 
     void YosenInterpreter::run_source(std::string& source, const std::vector<std::string>& cmd_arguments)
@@ -233,7 +252,7 @@ namespace yosen
         }
 	}
 
-	void YosenInterpreter::deallocate_frame(StackFramePtr stack_frame)
+	void YosenInterpreter::deallocate_stack_frame(StackFramePtr stack_frame)
 	{
 		// Deallocate incoming parameters
         for (auto& [name, obj] : stack_frame->params)
@@ -255,6 +274,12 @@ namespace yosen
 		// Deallocate pushed variables
 		for (auto& obj : m_parameter_stacks.top())
 			if (obj) free_object(obj);
+
+        // Deallocate disposed objects
+        for (auto& obj : stack_frame->disposed_objects)
+            free_object(obj);
+
+        stack_frame->disposed_objects.clear();
 	}
 	
 	void YosenInterpreter::destroy_stack_frame(StackFramePtr stack_frame)
@@ -642,6 +667,9 @@ namespace yosen
             // if it exists, call it.
             if (instance->has_member_runtime_function(class_name))
             {
+                // Add the constructor to the call stack
+                m_call_stack.push_back(class_name + "::constructor");
+
                 auto fn = instance->get_member_runtime_function(class_name);
 
                 auto fn_stack_frame = fn.first->clone();
@@ -682,6 +710,9 @@ namespace yosen
 
                     for (size_t i = 0; i < param_count - 1; ++i)
                         fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+
+                    // Set the used parameter count, excluding the "self" parameter
+                    param_pack->items_used = fn_stack_frame->params.size() - 1;
                 }
 
                 // Create an empty parameter stack to be used by the function for future functions
@@ -694,20 +725,33 @@ namespace yosen
                 instance = static_cast<YosenReference*>(fn_stack_frame->params[0].second)->obj;
 
                 // Deallocate the user function's stack frame
-                deallocate_frame(fn_stack_frame);
+                deallocate_stack_frame(fn_stack_frame);
 
                 // Destroy the stack frame since it's a clone
                 destroy_stack_frame(fn_stack_frame);
 
                 // Pop the functions's parameter stack
                 m_parameter_stacks.pop();
+
+                // Reverse the parameters for the runtime function case
+                std::reverse(param_pack->items.begin(), param_pack->items.end());
+
+                // Pop the constructor off the call stack
+                m_call_stack.pop_back();
             }
 
+            size_t used_params = param_pack->items_used;
+            size_t params_to_remove = param_pack->items.size() - used_params;
+
             // Deallocate the parameter pack object
+            for (size_t i = 0; i < params_to_remove; ++i)
+                param_pack->items.pop_back();
+
             free_object(param_pack);
 
-            // Clear the parameter stack
-            parameter_stack.clear();
+            // Remove the used objects from the parameter stack
+            for (size_t i = 0; i < used_params; ++i)
+                parameter_stack.pop_back();
 
             // Retrieve the original object
             auto original_object = m_registers[RegisterType::AllocatedObjectRegister];
@@ -727,10 +771,19 @@ namespace yosen
             current_instruction = instruction_count;
             return 0;
         }
+        case opcodes::SET_RUNTIME_FLAG:
+        {
+            // Operand is flag to be set
+            auto operand = ops[1];
+            opcount = 2;
+
+            m_runtime_flag = static_cast<RuntimeFlag>(operand);
+            break;
+        }
         case opcodes::CALL:
         {
             auto fn_index = ops[1];
-            auto caller_var = ops[2];
+            auto has_caller = ops[2];
             auto fn_name = stack_frame->function_names[fn_index];
             opcount = 3;
 
@@ -739,13 +792,25 @@ namespace yosen
             auto param_count = parameter_stack.size();
 
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
-
             YosenObject* return_val = nullptr;
 
-            if (caller_var)
+            if (has_caller)
             {
                 // Member function
                 auto caller_object = *LLOref;
+
+                // Push the function name to the call stack
+                auto caller_type = caller_object->runtime_name();
+                
+                // Get the actual name of the object under the reference
+                YosenObject* dummy_caller = caller_object;
+                while (strcmp(caller_type, "Ref") == 0)
+                {
+                    caller_type = static_cast<YosenReference*>(dummy_caller)->obj->runtime_name();
+                    dummy_caller = static_cast<YosenReference*>(dummy_caller)->obj;
+                }
+
+                m_call_stack.push_back(caller_type + std::string("::") + fn_name);
 
                 // Check if it's a native member function
                 if (caller_object->has_member_native_function(fn_name))
@@ -754,7 +819,15 @@ namespace yosen
 
                     // If the return register is not empty, deallocate the existing object
                     if (m_registers[RegisterType::ReturnRegister] != nullptr)
-                        free_object(m_registers[RegisterType::ReturnRegister]);
+                    {
+                        if (m_runtime_flag == RuntimeFlag::SequenceFunctionCall)
+                        {
+                            m_runtime_flag = RuntimeFlag::Null;
+                            stack_frame->disposed_objects.push_back(m_registers[RegisterType::ReturnRegister]);
+                        }
+                        else
+                            free_object(m_registers[RegisterType::ReturnRegister]);
+                    }
 
                     // Move the return value into the return register
                     m_registers[RegisterType::ReturnRegister] = return_val;
@@ -801,6 +874,9 @@ namespace yosen
 
                         for (size_t i = 0; i < param_count - 1; ++i)
                             fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+
+                        // Set the used parameter count, excluding the "self" parameter
+                        param_pack->items_used = fn_stack_frame->params.size() - 1;
                     }
 
                     // Create an empty parameter stack to be used by the function for future functions
@@ -810,13 +886,16 @@ namespace yosen
                     execute_bytecode(fn_stack_frame, fn_bytecode);
 
                     // Deallocate the user function's stack frame
-                    deallocate_frame(fn_stack_frame);
+                    deallocate_stack_frame(fn_stack_frame);
 
                     // Destroy the stack frame since it's a clone
                     destroy_stack_frame(fn_stack_frame);
 
                     // Pop the functions's parameter stack
                     m_parameter_stacks.pop();
+
+                    // Reverse the parameter pack again to get it back to normal
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
                 }
                 else
                 {
@@ -833,6 +912,9 @@ namespace yosen
             }
             else
             {
+                // Push the function name to the call stack
+                m_call_stack.push_back(fn_name);
+
                 // Check for a user-defined function
                 if (m_env->is_static_runtime_function(fn_name))
                 {
@@ -870,6 +952,9 @@ namespace yosen
 
                         for (size_t i = 0; i < param_count; ++i)
                             fn_stack_frame->params[i].second = param_pack->items[param_count - 1 - i]->clone();
+
+                        // Set the used parameter count
+                        param_pack->items_used = fn_stack_frame->params.size();
                     }
 
                     // Create an empty parameter stack to be used by the function for future functions
@@ -879,13 +964,16 @@ namespace yosen
                     execute_bytecode(fn_stack_frame, fn_bytecode);
 
                     // Deallocate the user function's stack frame
-                    deallocate_frame(fn_stack_frame);
+                    deallocate_stack_frame(fn_stack_frame);
 
                     // Destroy the stack frame since it's a clone
                     destroy_stack_frame(fn_stack_frame);
 
                     // Pop the functions's parameter stack
                     m_parameter_stacks.pop();
+
+                    // Reverse the parameter pack again to get it back to normal
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
                 }
 
                 // Check for a native function
@@ -896,7 +984,15 @@ namespace yosen
 
                     // If the return register is not empty, deallocate the existing object
                     if (m_registers[RegisterType::ReturnRegister] != nullptr)
-                        free_object(m_registers[RegisterType::ReturnRegister]);
+                    {
+                        if (m_runtime_flag == RuntimeFlag::SequenceFunctionCall)
+                        {
+                            m_runtime_flag = RuntimeFlag::Null;
+                            stack_frame->disposed_objects.push_back(m_registers[RegisterType::ReturnRegister]);
+                        }
+                        else
+                            free_object(m_registers[RegisterType::ReturnRegister]);
+                    }
 
                     // Move the return value into the return register
                     m_registers[RegisterType::ReturnRegister] = return_val;
@@ -915,11 +1011,21 @@ namespace yosen
                 }
             }
 
+            size_t used_params = param_pack->items_used;
+            size_t params_to_remove = param_pack->items.size() - used_params;
+
             // Deallocate the parameter pack object
+            for (size_t i = 0; i < params_to_remove; ++i)
+                param_pack->items.pop_back();
+
             free_object(param_pack);
 
-            // Clear the parameter stack
-            parameter_stack.clear();
+            // Remove the used objects from the parameter stack
+            for (size_t i = 0; i < used_params; ++i)
+                parameter_stack.pop_back();
+
+            // Pop the function name off the call stack
+            m_call_stack.pop_back();
 
             break;
         }

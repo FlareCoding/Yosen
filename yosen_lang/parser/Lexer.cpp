@@ -176,7 +176,7 @@ namespace yosen::parser
 	
 	void Lexer::parse_segment(const std::string& segment, size_t lineno)
 	{
-		std::regex rx(R"(::|>=|<=|/=|\*=|\-=|\-\-|\+=|\+\+|!=|==|&&|\|\||[!();:=,{}\[\]+*/\-%])");
+		std::regex rx(R"(::|>=|<=|/=|\*=|\-=|\-\-|\+=|\+\+|!=|==|&&|\|\||[!();:=.,{}\[\]+*/\-%])");
 		std::sregex_token_iterator srti(segment.begin(), segment.end(), rx, { -1, 0 });
 		std::vector<std::string> tokens;
 		std::remove_copy_if(srti, std::sregex_token_iterator(),

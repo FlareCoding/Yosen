@@ -1,0 +1,14 @@
+class Card
+{
+	var name = "null";
+	var value = 0;
+
+	func Card(self, name, value) {
+		self.name = name;
+		self.value = value;
+	}
+
+	func to_string(self) {
+		return "{ " + self.name + ", " + str(self.value) + " }";
+	}
+}
