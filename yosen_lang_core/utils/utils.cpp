@@ -13,6 +13,7 @@
 		#include <mach-o/dyld.h>
 		#include <sys/syslimits.h>
 	#elif defined(__linux__)
+		#include <unistd.h>
 		#include <limits.h>
 		#include <cstring>
 	#endif
