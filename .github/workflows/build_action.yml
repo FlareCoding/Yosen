@@ -5,8 +5,9 @@ on: push
 jobs:
   build-windows:
     runs-on: windows-latest
-    run: cd scripts && .\GenerateProject.bat && cd ..
-      - name: Generate project
-    run: cd build && cmake --build .
-      - name: Build project
-    
+    steps:
+    - uses: actions checkout@v2
+    - name: generate project
+      run: cd scripts && .\GenerateProject.bat && cd ..\build
+    - name: build project
+      run: cmake --build .
