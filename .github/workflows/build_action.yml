@@ -9,3 +9,17 @@ jobs:
     - uses: actions/checkout@v2
     - name: build project
       run: cd scripts && .\GenerateProject.bat && cd ..\build && cmake --build .
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: build project
+      run: cd scripts && .\GenerateProjectRelease.sh && cd ..\build && cmake --build .
+      
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: build project
+      run: cd scripts && .\GenerateProjectRelease.sh && cd ..\build && cmake --build .
