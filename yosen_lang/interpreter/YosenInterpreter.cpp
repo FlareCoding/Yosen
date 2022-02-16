@@ -105,6 +105,8 @@ namespace yosen
 
     void YosenInterpreter::main_exception_handler(const YosenException& ex)
     {
+        trace_call_stack();
+
         utils::log_colored(
             utils::ConsoleColor::Yellow,
             "%s\n",
@@ -119,6 +121,23 @@ namespace yosen
 
         shutdown();
         exit(1);
+    }
+
+    void YosenInterpreter::trace_call_stack()
+    {
+        utils::log_colored(
+            utils::ConsoleColor::Yellow,
+            "Callstack:\n"
+        );
+        
+        for (auto& name : m_call_stack)
+        {
+            utils::log_colored(
+                utils::ConsoleColor::Yellow,
+                "<>\t%s\n",
+                name.c_str()
+            );
+        }
     }
 
     void YosenInterpreter::run_source(std::string& source, const std::vector<std::string>& cmd_arguments)
@@ -648,6 +667,9 @@ namespace yosen
             // if it exists, call it.
             if (instance->has_member_runtime_function(class_name))
             {
+                // Add the constructor to the call stack
+                m_call_stack.push_back(class_name + "::constructor");
+
                 auto fn = instance->get_member_runtime_function(class_name);
 
                 auto fn_stack_frame = fn.first->clone();
@@ -713,6 +735,9 @@ namespace yosen
 
                 // Reverse the parameters for the runtime function case
                 std::reverse(param_pack->items.begin(), param_pack->items.end());
+
+                // Pop the constructor off the call stack
+                m_call_stack.pop_back();
             }
 
             size_t used_params = param_pack->items_used;
@@ -773,6 +798,19 @@ namespace yosen
             {
                 // Member function
                 auto caller_object = *LLOref;
+
+                // Push the function name to the call stack
+                auto caller_type = caller_object->runtime_name();
+                
+                // Get the actual name of the object under the reference
+                YosenObject* dummy_caller = caller_object;
+                while (strcmp(caller_type, "Ref") == 0)
+                {
+                    caller_type = static_cast<YosenReference*>(dummy_caller)->obj->runtime_name();
+                    dummy_caller = static_cast<YosenReference*>(dummy_caller)->obj;
+                }
+
+                m_call_stack.push_back(caller_type + std::string("::") + fn_name);
 
                 // Check if it's a native member function
                 if (caller_object->has_member_native_function(fn_name))
@@ -874,6 +912,9 @@ namespace yosen
             }
             else
             {
+                // Push the function name to the call stack
+                m_call_stack.push_back(fn_name);
+
                 // Check for a user-defined function
                 if (m_env->is_static_runtime_function(fn_name))
                 {
@@ -982,6 +1023,9 @@ namespace yosen
             // Remove the used objects from the parameter stack
             for (size_t i = 0; i < used_params; ++i)
                 parameter_stack.pop_back();
+
+            // Pop the function name off the call stack
+            m_call_stack.pop_back();
 
             break;
         }

@@ -101,5 +101,12 @@ namespace yosen
 	private:
 		// Main exception handler
 		void main_exception_handler(const YosenException& ex);
+
+		// Stack of functions that have entered their execution
+		std::vector<std::string> m_call_stack;
+
+		// Helper function that prints out a
+		// proper traceback through the call stack.
+		void trace_call_stack();
 	};
 }
