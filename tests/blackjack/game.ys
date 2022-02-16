@@ -73,8 +73,6 @@ class Game
 		var player_cards = self.create_new_hand();
 		self.print_hand(player_cards);
 
-		throw("Test exception");
-
 		var player_total_value = self.get_hand_value(player_cards);
 		io::println("Your value: " + str(player_total_value) + "\n");
 
