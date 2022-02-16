@@ -66,6 +66,7 @@ YosenObject* _ys_std_random_gen_int(YosenObject* args)
 		YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
         return nullptr;
     }
+    arg_parse(args, "");
 
     std::random_device os_seed;
     const u32 seed = os_seed();
@@ -140,6 +141,7 @@ YosenObject* _ys_std_random_gen_uuid(YosenObject* args)
 		YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
         return nullptr;
     }
+    arg_parse(args, "");
     
     return allocate_object<YosenString>(generate_uuid());
 }

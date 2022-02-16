@@ -47,12 +47,16 @@ namespace yosen
 
 	YosenObject* YosenString::length(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenString*>(self);
 		return allocate_object<YosenInteger>((int64_t)this_obj->value.size());
 	}
 
 	YosenObject* YosenString::reverse(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenString*>(self);
 
 		std::string val_copy(this_obj->value);
@@ -100,6 +104,8 @@ namespace yosen
 
 	YosenObject* YosenString::clear(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenString*>(self);
 		this_obj->value.clear();
 
@@ -108,6 +114,8 @@ namespace yosen
 
 	YosenObject* YosenString::is_empty(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenString*>(self);
 		bool result = this_obj->value.empty();
 		

@@ -72,6 +72,7 @@ YosenObject* _ys_std_os_cwd(YosenObject* args)
 		YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
         return nullptr;
     }
+	arg_parse(args, "");
 
     return allocate_object<YosenString>(std::filesystem::current_path().string());
 }

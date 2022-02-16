@@ -16,6 +16,9 @@ namespace yosen
 
 		std::vector<YosenObject*> items;
 
+		// Important for interpreter internals
+		size_t items_used = 0;
+
 	private:
 		void register_member_native_functions();
 	};

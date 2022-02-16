@@ -688,6 +688,9 @@ namespace yosen
 
                     for (size_t i = 0; i < param_count - 1; ++i)
                         fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+
+                    // Set the used parameter count, excluding the "self" parameter
+                    param_pack->items_used = fn_stack_frame->params.size() - 1;
                 }
 
                 // Create an empty parameter stack to be used by the function for future functions
@@ -707,13 +710,23 @@ namespace yosen
 
                 // Pop the functions's parameter stack
                 m_parameter_stacks.pop();
+
+                // Reverse the parameters for the runtime function case
+                std::reverse(param_pack->items.begin(), param_pack->items.end());
             }
 
+            size_t used_params = param_pack->items_used;
+            size_t params_to_remove = param_pack->items.size() - used_params;
+
             // Deallocate the parameter pack object
+            for (size_t i = 0; i < params_to_remove; ++i)
+                param_pack->items.pop_back();
+
             free_object(param_pack);
 
-            // Clear the parameter stack
-            parameter_stack.clear();
+            // Remove the used objects from the parameter stack
+            for (size_t i = 0; i < used_params; ++i)
+                parameter_stack.pop_back();
 
             // Retrieve the original object
             auto original_object = m_registers[RegisterType::AllocatedObjectRegister];
@@ -754,7 +767,6 @@ namespace yosen
             auto param_count = parameter_stack.size();
 
             YosenTuple* param_pack = allocate_object<YosenTuple>(parameter_stack);
-
             YosenObject* return_val = nullptr;
 
             if (has_caller)
@@ -824,6 +836,9 @@ namespace yosen
 
                         for (size_t i = 0; i < param_count - 1; ++i)
                             fn_stack_frame->params[i + 1].second = param_pack->items[param_count - 2 - i]->clone();
+
+                        // Set the used parameter count, excluding the "self" parameter
+                        param_pack->items_used = fn_stack_frame->params.size() - 1;
                     }
 
                     // Create an empty parameter stack to be used by the function for future functions
@@ -840,6 +855,9 @@ namespace yosen
 
                     // Pop the functions's parameter stack
                     m_parameter_stacks.pop();
+
+                    // Reverse the parameter pack again to get it back to normal
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
                 }
                 else
                 {
@@ -893,6 +911,9 @@ namespace yosen
 
                         for (size_t i = 0; i < param_count; ++i)
                             fn_stack_frame->params[i].second = param_pack->items[param_count - 1 - i]->clone();
+
+                        // Set the used parameter count
+                        param_pack->items_used = fn_stack_frame->params.size();
                     }
 
                     // Create an empty parameter stack to be used by the function for future functions
@@ -909,6 +930,9 @@ namespace yosen
 
                     // Pop the functions's parameter stack
                     m_parameter_stacks.pop();
+
+                    // Reverse the parameter pack again to get it back to normal
+                    std::reverse(param_pack->items.begin(), param_pack->items.end());
                 }
 
                 // Check for a native function
@@ -946,11 +970,18 @@ namespace yosen
                 }
             }
 
+            size_t used_params = param_pack->items_used;
+            size_t params_to_remove = param_pack->items.size() - used_params;
+
             // Deallocate the parameter pack object
+            for (size_t i = 0; i < params_to_remove; ++i)
+                param_pack->items.pop_back();
+
             free_object(param_pack);
 
-            // Clear the parameter stack
-            parameter_stack.clear();
+            // Remove the used objects from the parameter stack
+            for (size_t i = 0; i < used_params; ++i)
+                parameter_stack.pop_back();
 
             break;
         }

@@ -1,0 +1,32 @@
+import "card.ys";
+import stdio;
+import random;
+
+class Game
+{
+	var card_options = [];
+
+	func Game(self) {
+		self.card_options.add(new Card("2", 2));
+		self.card_options.add(new Card("3", 3));
+		self.card_options.add(new Card("4", 4));
+		self.card_options.add(new Card("5", 5));
+		self.card_options.add(new Card("6", 6));
+		self.card_options.add(new Card("7", 7));
+		self.card_options.add(new Card("8", 8));
+		self.card_options.add(new Card("9", 9));
+		self.card_options.add(new Card("10", 10));
+		self.card_options.add(new Card("Jack", 10));
+		self.card_options.add(new Card("Queen", 10));
+		self.card_options.add(new Card("King", 10));
+		self.card_options.add(new Card("Ace", 11));
+	}
+
+	func print_welcome_message() {
+		io::println("\n------ Welcome to Blackjack! ------\n");
+	}
+
+	func pick_random_card(self) {
+		return self.card_options.get(random::gen_int_range(0, self.card_options.length()));
+	}
+}

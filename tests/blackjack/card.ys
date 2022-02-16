@@ -9,13 +9,6 @@ class Card
 	}
 
 	func to_string(self) {
-		var result = "{ ";
-		result.append(self.name);
-		result.append(", ");
-		result.append(str(self.value));
-		result.append(" }");
-		return result;
-
-		//return "{ " + self.name + ", " + str(self.value) + " }";
+		return "{ " + self.name + ", " + str(self.value) + " }";
 	}
 }

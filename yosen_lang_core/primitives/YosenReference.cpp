@@ -39,6 +39,8 @@ namespace yosen
 
 	YosenObject* YosenReference::get_obj(YosenObject* self, YosenObject* args)
 	{
+		arg_parse(args, "");
+
 		auto this_obj = static_cast<YosenReference*>(self);
 		return this_obj->obj->clone();
 	}

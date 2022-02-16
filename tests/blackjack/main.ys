@@ -1,35 +1,9 @@
-import stdio;
-import "card.ys";
-
-func get_card() {
-	return new Card("King", 10);
-}
-
-class Foo
-{
-	var card = null;
-
-	func Foo(self) {
-		self.card = new Card("King", 10);
-	}
-
-	func get_foo_card(self) {
-		return self.card;
-	}
-
-	func get_new_foo(self) {
-		return new Foo();
-	}
-}
-
-func get_foo() {
-	return new Foo();
-}
+import "game.ys";
 
 func main()
 {
-	//io::println("\n------ Welcome to Blackjack! ------\n");
+	Game::print_welcome_message();
 
-	var repr = get_foo().get_new_foo().get_foo_card().to_string();
-	io::println(repr);
+	var game = new Game();
+	io::println(game.pick_random_card().to_string());
 }
