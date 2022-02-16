@@ -10,4 +10,4 @@ jobs:
     - name: generate project
       run: cd scripts && .\GenerateProject.bat && cd ..\build
     - name: build project
-      run: cmake --build .
+      run: echo %CD% && cmake --build .
