@@ -26,7 +26,106 @@ class Game
 		io::println("\n------ Welcome to Blackjack! ------\n");
 	}
 
+	func print_hand(self, hand) {
+		for (var i = 0; i < hand.length(); i += 1) {
+			io::println(hand.get(i).to_string());
+		}
+	}
+
+	func get_hand_value(self, hand) {
+		var total = 0;
+		for (var i = 0; i < hand.length(); i += 1) {
+			var card = hand.get(i);
+			total += card.value;
+		}
+		return total;
+	}
+
 	func pick_random_card(self) {
-		return self.card_options.get(random::gen_int_range(0, self.card_options.length()));
+		return self.card_options.get(random::gen_int_range(0, self.card_options.length() - 1));
+	}
+
+	func create_new_hand(self) {
+		var hand = [];
+		
+		for (var i = 0; i < 2; i += 1) {
+			hand.add(self.pick_random_card());
+		}
+
+		return hand;
+	}
+
+	func get_final_dealer_cards(self) {
+		var dealer_cards = self.create_new_hand();
+		var dealer_value = self.get_hand_value(dealer_cards);
+
+		while (dealer_value <= 15) {
+			var new_card = self.pick_random_card();
+			io::println("Dealer drew a new card: " + new_card.to_string());
+			dealer_cards.add(new_card);
+			dealer_value = self.get_hand_value(dealer_cards);
+		}
+
+		return dealer_cards;
+	}
+
+	func start_new_game(self) {
+		var player_cards = self.create_new_hand();
+		self.print_hand(player_cards);
+
+		var player_total_value = self.get_hand_value(player_cards);
+		io::println("Your value: " + str(player_total_value) + "\n");
+
+		if (player_total_value > 21) {
+			io::println("Busted, you lose!\n");
+			return;
+		}
+		else if (player_total_value == 21) {
+			io::println("Blackjack! You won!");
+			return;
+		}
+
+		while (player_total_value <= 21) {
+			var user_choice = io::input("1) Stay\n2) Hit\nChoose your option: ");
+			if (user_choice == "1") {
+				break;
+			}
+			else if (user_choice == "2") {
+				var new_card = self.pick_random_card();
+				io::println("Drawn card: " + new_card.to_string());
+				player_cards.add(new_card);
+
+				player_total_value = self.get_hand_value(player_cards);
+				io::println("Your value: " + str(player_total_value) + "\n");
+			}
+			else {
+				io::println("Unrecognized option, please try again...\n");
+			}
+		}
+
+		if (player_total_value > 21) {
+			io::println("Busted, you lose!\n");
+			return;
+		}
+
+		var dealer_cards = self.get_final_dealer_cards();
+		var dealer_value = self.get_hand_value(dealer_cards);
+
+		io::println("\nDealer's value: " + str(dealer_value));
+
+		if (dealer_value > 21) {
+			io::println("Dealer is busted! You win!\n");
+			return;
+		}
+
+		if (dealer_value > player_total_value) {
+			io::println("Dealer won, you lost!\n");
+		}
+		else if (dealer_value == player_total_value) {
+			io::println("It's a tie!\n");
+		}
+		else {
+			io::println("You won!\n");
+		}
 	}
 }

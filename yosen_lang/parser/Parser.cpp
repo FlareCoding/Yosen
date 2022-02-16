@@ -629,6 +629,11 @@ namespace yosen::parser
 			lhs["value_type"] = LiteralValueToken::type_to_string(lvt->value_type);
 			lhs["value"] = lvt->value;
 
+			// If the value is a string, wrap it with an extra
+			// set of quotes to work properly on the stack frame.
+			if (lvt->value_type == LiteralType::String)
+				lhs["value"] = "\"" + lvt->value + "\"";
+
 			expect(TokenType::LiteralValue);
 		}
 		else if (is_symbol(current_token, Symbol::BracketOpen))

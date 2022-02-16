@@ -5,5 +5,5 @@ func main()
 	Game::print_welcome_message();
 
 	var game = new Game();
-	io::println(game.pick_random_card().to_string());
+	game.start_new_game();
 }
