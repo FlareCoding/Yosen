@@ -7,7 +7,5 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - name: generate project
-      run: cd scripts && .\GenerateProject.bat && cd ..\build
     - name: build project
-      run: echo %CD% && cmake --build .
+      run: cd scripts && .\GenerateProject.bat && cd ..\build && cmake --build .
