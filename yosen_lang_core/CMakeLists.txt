@@ -25,3 +25,8 @@ add_library(
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE YOSEN_BUILD)
+
+# Linking against DL library on Linux only
+if (LINUX)
+    target_link_libraries(${TARGET_NAME} dl)
+endif(LINUX)
