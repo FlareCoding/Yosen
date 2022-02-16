@@ -411,5 +411,16 @@ namespace yosen
 
 			return allocate_object<YosenString>(arg_object->instance_info());
 		});
+
+		register_static_native_function("throw", [](YosenObject* args) -> YosenObject* {
+			char* ex_reason = nullptr;
+			arg_parse(args, "s", &ex_reason);
+
+			if (!ex_reason)
+				return YosenObject_Null->clone();
+
+			YosenEnvironment::get().throw_exception(RuntimeException(ex_reason));
+			return YosenObject_Null->clone();
+		});
 	}
 }
