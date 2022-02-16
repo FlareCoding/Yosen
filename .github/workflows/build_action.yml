@@ -1,0 +1,12 @@
+name: CPP Build Check
+
+on: push
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    run: cd scripts && .\GenerateProject.bat && cd ..
+      - name: Generate project
+    run: cd build && cmake --build .
+      - name: Build project
+    
