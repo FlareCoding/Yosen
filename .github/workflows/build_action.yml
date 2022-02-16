@@ -15,11 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build project
-      run: cd scripts && .\GenerateProjectRelease.sh && cd ..\build && cmake --build .
+      run: cd scripts && ./GenerateProjectRelease.sh && cd ..\build && cmake --build .
       
   build-macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
     - name: build project
-      run: cd scripts && .\GenerateProjectRelease.sh && cd ..\build && cmake --build .
+      run: cd scripts && ./GenerateProjectRelease.sh && cd ..\build && cmake --build .
