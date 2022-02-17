@@ -1,5 +1,4 @@
 # Yosen
-Yosen programming language
 
 [![Build Status](https://github.com/python/cpython/workflows/Tests/badge.svg)](https://github.com/FlareCoding/Yosen/actions)
 
