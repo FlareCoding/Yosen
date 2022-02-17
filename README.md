@@ -8,7 +8,7 @@ Yosen supports both procedural and object-oriented programming approaches giving
 
 ## Contents
 - [Platform](#platform)
-- [Build Instructions](#building)
+- [Building](#building)
 - [Installation](#installation)
 
 
