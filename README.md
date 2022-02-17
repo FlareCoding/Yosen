@@ -1,6 +1,6 @@
 # Yosen
 
-[![Build Status](https://github.com/python/cpython/workflows/Tests/badge.svg)](https://github.com/FlareCoding/Yosen/actions)
+[![Build Status](https://github.com/FlareCoding/Yosen/actions/workflows/build_action.yml/badge.svg?branch=master)](https://github.com/FlareCoding/Yosen/actions)
 
 Yosen is a general purpose, high-level language similar to Python that compiles the source code to a high-level bytecode and then interprets it.
 Yosen supports both procedural and object-oriented programming approaches giving users the flexibility within their programs. Unlike Python, Yosen doesn't pass parameters or return variables by reference. It is similar to C++ in this regard, it is strictly pass-by-value, with the only exception being when the "self" parameter gets passed to class member functions. Additionally, Yosen offers a large and growing standard library that is powered by Yosen's easy to use framework for writing native modules, which anyone can do and distribute them as shared library files!
