@@ -1,4 +1,4 @@
-name: CPP Build Check
+name: Build
 
 on: push
 
