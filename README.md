@@ -10,6 +10,9 @@ Yosen supports both procedural and object-oriented programming approaches giving
 - [Platform](#platform)
 - [Building](#building)
 - [Installation](#installation)
+- [Tests](#tests)
+- [Contributing](#contributing)
+- [License](#license)
 
 
 ## Platform
