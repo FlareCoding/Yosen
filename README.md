@@ -19,7 +19,7 @@ Yosen supports both procedural and object-oriented programming approaches giving
 | ✓    | ✓ | ✓
 
 
-## Build Instructions
+## Building
 
 After cloning the repo, open git bash in the repo root directory and execute the following commands:
 
